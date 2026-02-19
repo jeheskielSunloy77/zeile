@@ -8,7 +8,8 @@ A monorepo for a Go API and a Vite + React web app with shared TypeScript packag
 ```
 zeile/
 ├── apps/api             # Go API (Fiber)
-├── apps/web             # Vite + React frontend
+├── apps/tui             # Go terminal e-reader app (MVP)
+├── apps/web             # Vite + React frontend (future)
 ├── packages/zod         # Shared Zod schemas
 ├── packages/openapi     # OpenAPI generation
 ├── packages/emails      # React Email for email templates generation
@@ -27,7 +28,6 @@ zeile/
 ```bash
 bun install                          # Install dependencies for all apps and packages
 cp apps/api/.env.example apps/api/.env      # Set up API env
-cp apps/web/.env.example apps/web/.env      # Set up Web env
 bun run api:migrate:up   # Run DB migrations
 
 # Start all apps
@@ -53,7 +53,9 @@ bun run typecheck
 
 # API helpers (see apps/api/Makefile for migrate targets)
 bun run api:run
+bun run tui:run
 bun run api:test
+bun run tui:test
 cd apps/api && make migrate-new NAME=add_table
 cd apps/api && make migrate-up
 cd apps/api && make migrate-down
@@ -99,7 +101,25 @@ bun run ui:shadcn:add <component>
 - OpenAPI docs are written to `apps/api/static/openapi.json` and served at `/api/docs`. Update `packages/zod` and `packages/openapi/src/contracts` when endpoints change.
 - Caching layer with Redis in `apps/api/internal/lib/cache`.
 
+## TUI (apps/tui)
+
+### Technologies
+
+- Go + Charm toolkit (Bubble Tea + Lip Gloss)
+- SQLite (pure Go) for local persistence
+- Local-first managed library storage and preprocessing caches
+
+### MVP capabilities
+
+- Library list with search, remove, and delete-from-disk confirmation flow
+- Add/import view with path input + file browser, managed copy toggle, progress + cancel
+- Reader with two-page spread fallback, zen mode, in-book search, go-to page/percent
+- EPUB + PDF support (PDF text mode + layout mode with remembered separate positions)
+- Crash-safe reading progress persistence and startup auto-resume of most recent unfinished book
+
 ## Web (apps/web)
+
+> `apps/web` is intentionally not used for V1/V2 of the reader roadmap.
 
 ### Technologies
 
