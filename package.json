@@ -1,0 +1,45 @@
+{
+	"name": "zeile",
+	"version": "1.0.0",
+	"scripts": {
+		"build": "turbo run build --filter=./apps/*",
+		"build:all": "turbo run build",
+		"dev:all": "turbo run dev",
+		"dev": "turbo run dev --filter=./apps/*",
+		"format:check": "turbo run format:check",
+		"format:fix": "turbo run format:fix",
+		"lint": "turbo run lint",
+		"lint:fix": "turbo run lint:fix",
+		"typecheck": "turbo run typecheck",
+		"test": "turbo run test",
+		"clean": "turbo run clean && rimraf node_modules",
+		"api:run": "turbo run dev --filter=@zeile/api",
+		"api:seed": "cd apps/api && make seed",
+		"api:migrate:new": "cd apps/api && make migrate-new",
+		"api:migrate:up": "cd apps/api && make migrate-up",
+		"api:migrate:down": "cd apps/api && make migrate-down",
+		"api:migrate:fresh": "cd apps/api && make migrate-fresh",
+		"api:tidy": "cd apps/api && go fmt ./... && go mod tidy && go mod verify",
+		"api:install": "cd apps/api && go mod download",
+		"api:test": "turbo run test --filter=@zeile/api",
+		"web:test": "turbo run test --filter=@zeile/web",
+		"ui:shadcn:add": "cd packages/ui && bunx --bun shadcn@latest add",
+		"web:shadcn:add": "bun run ui:shadcn:add",
+		"openapi:generate": "cd packages/openapi && bun generate",
+		"emails:generate": "cd packages/emails && bun run generate",
+		"ci:simulate": "bun install --frozen-lockfile && bun run openapi:generate && bun run emails:generate && git status --porcelain && bun run build && bun run test && echo '✅ CI simulation completed successfully!'",
+		"postinstall": "bun run api:install"
+	},
+	"packageManager": "bun@1.2.13",
+	"engines": {
+		"node": ">=22"
+	},
+	"workspaces": [
+		"apps/*",
+		"packages/*"
+	],
+	"devDependencies": {
+		"turbo": "^2.5.5",
+		"typescript": "^5.8.3"
+	}
+}

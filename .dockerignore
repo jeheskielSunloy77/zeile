@@ -1,0 +1,11 @@
+.git
+.gitignore
+node_modules
+**/node_modules
+**/.turbo
+**/dist
+**/coverage*
+**/.env
+**/*.tsbuildinfo
+apps/api/coverage.html
+apps/api/coverage.out
