@@ -1,0 +1,10 @@
+{
+  "name": "@zeile/tui",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "go run ./cmd/tui",
+    "build": "go build -o bin/tui ./cmd/tui",
+    "test": "go test ./..."
+  }
+}

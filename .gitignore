@@ -42,6 +42,8 @@ out/
 build
 dist
 tmp
+bin/
+apps/tui/tui
 
 # Debug
 npm-debug.log*
