@@ -298,6 +298,14 @@ func (s *LibraryService) ReadingStateForMode(ctx context.Context, bookID string,
 	return s.states.GetByBookAndMode(ctx, bookID, mode)
 }
 
+func (s *LibraryService) StatesForBook(ctx context.Context, bookID string) ([]domain.ReadingState, error) {
+	return s.states.ListByBook(ctx, bookID)
+}
+
+func (s *LibraryService) BookByID(ctx context.Context, bookID string) (domain.Book, error) {
+	return s.books.GetByID(ctx, bookID)
+}
+
 func (s *LibraryService) MostRecentUnfinishedBook(ctx context.Context) (domain.Book, error) {
 	bookID, err := s.states.MostRecentUnfinishedBookID(ctx)
 	if err != nil {
