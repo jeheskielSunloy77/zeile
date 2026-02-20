@@ -14,7 +14,7 @@
 		"test": "turbo run test",
 		"clean": "turbo run clean && rimraf node_modules",
 		"api:run": "turbo run dev --filter=@zeile/api",
-		"tui:run": "turbo run dev --filter=@zeile/tui",
+		"tui:run": "cd apps/tui && bun run dev",
 		"api:seed": "cd apps/api && make seed",
 		"api:migrate:new": "cd apps/api && make migrate-new",
 		"api:migrate:up": "cd apps/api && make migrate-up",
