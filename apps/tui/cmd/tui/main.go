@@ -18,7 +18,7 @@ func main() {
 	}
 	defer container.Close()
 
-	program := tea.NewProgram(tui.New(container))
+	program := tea.NewProgram(tui.New(container), tea.WithAltScreen())
 	if _, err := program.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to start tui: %v\n", err)
 		os.Exit(1)

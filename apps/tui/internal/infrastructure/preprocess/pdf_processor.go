@@ -24,7 +24,7 @@ func (p PDFProcessor) Process(ctx context.Context, input preprocessing.Input, on
 		onProgress("Parsing PDF", 0.55)
 	}
 
-	cache, err := pdfparser.Extract(input.ManagedPath)
+	cache, err := pdfparser.Extract(ctx, input.ManagedPath)
 	if err != nil {
 		return preprocessing.Result{}, err
 	}
@@ -52,6 +52,7 @@ func (p PDFProcessor) Process(ctx context.Context, input preprocessing.Input, on
 	meta, err := json.Marshal(map[string]any{
 		"format":          domain.BookFormatPDF,
 		"pages":           len(cache.Pages),
+		"layout_pages":    len(cache.LayoutPages),
 		"cache_file":      pdfCacheFile,
 		"source_filename": filepath.Base(input.SourcePath),
 	})

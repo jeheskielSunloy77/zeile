@@ -112,6 +112,7 @@ type model struct {
 	readerMode          domain.ReadingMode
 	readerTextDocument  reader.TextDocument
 	readerPagination    reader.TextPagination
+	readerSectionStarts []int
 	readerLayoutPages   []string
 	readerPage          int
 	readerSearchQuery   string
@@ -239,9 +240,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case tea.QuitMsg:
+		if m.currentView == viewReader {
+			if err := m.saveReaderState(); err != nil {
+				m.status = fmt.Sprintf("Failed to save progress before quit: %v", err)
+				return m, nil
+			}
+		}
+		return m, tea.Quit
+
 	case tea.KeyMsg:
 		if msg.String() == "ctrl+c" {
-			return m, tea.Quit
+			return m, m.requestQuitCmd()
 		}
 
 		if m.prompt != nil {
@@ -433,6 +443,16 @@ func (m *model) applyPrompt() {
 			m.status = "Delete canceled: type DELETE exactly to confirm"
 		}
 	}
+}
+
+func (m *model) requestQuitCmd() tea.Cmd {
+	if m.currentView == viewReader {
+		if err := m.saveReaderState(); err != nil {
+			m.status = fmt.Sprintf("Failed to save progress before quit: %v", err)
+			return nil
+		}
+	}
+	return tea.Quit
 }
 
 func (m model) View() string {

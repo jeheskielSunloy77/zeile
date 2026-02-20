@@ -11,8 +11,9 @@ const (
 )
 
 type Locator struct {
-	Offset    int `json:"offset,omitempty"`
-	PageIndex int `json:"page_index,omitempty"`
+	Offset       int `json:"offset,omitempty"`
+	PageIndex    int `json:"page_index,omitempty"`
+	SectionIndex int `json:"section_index,omitempty"`
 }
 
 type ReadingState struct {

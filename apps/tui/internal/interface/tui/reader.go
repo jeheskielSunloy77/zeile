@@ -107,6 +107,7 @@ func (m *model) openTextMode(bookID string, mode domain.ReadingMode) error {
 	m.readerBook = session.Book
 	m.readerMode = mode
 	m.readerTextDocument = session.Document
+	m.readerSectionStarts = session.SectionStarts
 	m.readerLayoutPages = nil
 	m.readerSearchMatches = nil
 	m.readerSearchIndex = 0
@@ -116,6 +117,12 @@ func (m *model) openTextMode(bookID string, mode domain.ReadingMode) error {
 	anchor := session.State.Locator.Offset
 	if anchor < 0 {
 		anchor = 0
+	}
+	if anchor == 0 && mode == domain.ReadingModeEPUB && session.State.Locator.SectionIndex > 0 {
+		sectionIdx := clamp(session.State.Locator.SectionIndex, 0, len(m.readerSectionStarts)-1)
+		if len(m.readerSectionStarts) > 0 {
+			anchor = m.readerSectionStarts[sectionIdx]
+		}
 	}
 	m.repaginateReader(anchor)
 	if anchor == 0 && session.State.Locator.PageIndex > 0 {
@@ -142,6 +149,7 @@ func (m *model) openLayoutMode(bookID string) error {
 	m.readerLayoutPages = session.Pages
 	m.readerTextDocument = reader.TextDocument{}
 	m.readerPagination = reader.TextPagination{}
+	m.readerSectionStarts = nil
 	m.readerPage = clamp(session.State.Locator.PageIndex, 0, len(session.Pages)-1)
 	m.readerSearchMatches = nil
 	m.readerSearchIndex = 0
@@ -224,7 +232,10 @@ func (m *model) repaginateReader(anchorOffset int) {
 }
 
 func (m *model) readerPageSize() (int, int) {
-	width := m.width
+	width := m.bodyContentWidth()
+	if width <= 0 {
+		width = m.width
+	}
 	height := m.height
 	if width <= 0 {
 		width = 120
@@ -315,7 +326,11 @@ func (m *model) saveReaderState() error {
 
 	if m.isReaderTextMode() {
 		offset := m.readerPagination.OffsetForPage(m.readerPage)
-		state.Locator = domain.Locator{Offset: offset, PageIndex: m.readerPage}
+		state.Locator = domain.Locator{
+			Offset:       offset,
+			PageIndex:    m.readerPage,
+			SectionIndex: m.readerSectionIndexForOffset(offset),
+		}
 		state.ProgressPercent = reader.ProgressPercent(offset, m.readerTextDocument.TokenCount())
 	} else {
 		totalPages := len(m.readerLayoutPages)
@@ -327,6 +342,23 @@ func (m *model) saveReaderState() error {
 	}
 
 	return m.container.Reader.SaveState(context.Background(), state)
+}
+
+func (m *model) readerSectionIndexForOffset(offset int) int {
+	if m.readerMode != domain.ReadingModeEPUB || len(m.readerSectionStarts) == 0 {
+		return 0
+	}
+
+	index := sort.Search(len(m.readerSectionStarts), func(i int) bool {
+		return m.readerSectionStarts[i] > offset
+	}) - 1
+	if index < 0 {
+		return 0
+	}
+	if index >= len(m.readerSectionStarts) {
+		return len(m.readerSectionStarts) - 1
+	}
+	return index
 }
 
 func (m *model) applyReaderSearch(query string) {

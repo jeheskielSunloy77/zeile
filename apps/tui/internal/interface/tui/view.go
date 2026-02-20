@@ -52,13 +52,11 @@ func (m model) renderLibrary() string {
 		status = "Ready"
 	}
 
-	parts := []string{header, subheader, "", strings.Join(rows, "\n"), "", hints, "Status: " + status}
-	view := strings.Join(parts, "\n")
-
-	if m.width > 0 && m.height > 0 {
-		return lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top, view)
-	}
-	return view
+	return m.renderPinnedLayout(
+		[]string{header, subheader, ""},
+		strings.Join(rows, "\n"),
+		[]string{"", m.renderFooterRow(hints, "Status: "+status)},
+	)
 }
 
 func (m model) renderAdd() string {
@@ -131,22 +129,17 @@ func (m model) renderAdd() string {
 		status = "Ready"
 	}
 
-	parts := []string{
-		header,
-		"",
-		pathLine,
-		managedLine,
-	}
+	bodyLines := []string{pathLine, managedLine}
 	if progressLine != "" {
-		parts = append(parts, progressLine)
+		bodyLines = append(bodyLines, progressLine)
 	}
-	parts = append(parts, "", strings.Join(browserLines, "\n"), "", hints, "Status: "+status)
+	bodyLines = append(bodyLines, "", strings.Join(browserLines, "\n"))
 
-	view := strings.Join(parts, "\n")
-	if m.width > 0 && m.height > 0 {
-		return lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top, view)
-	}
-	return view
+	return m.renderPinnedLayout(
+		[]string{header, ""},
+		strings.Join(bodyLines, "\n"),
+		[]string{"", m.renderFooterRow(hints, "Status: "+status)},
+	)
 }
 
 func (m model) renderReader() string {
@@ -176,7 +169,8 @@ func (m model) renderReader() string {
 			rightPageNum = rightIndex + 1
 		}
 		rightPage := m.renderPageBox(rightContent, rightPageNum, pageCount, pageWidth, pageHeight)
-		pagesView = lipgloss.JoinHorizontal(lipgloss.Top, leftPage, "    ", rightPage)
+		divider := m.renderSpreadDivider(pageHeight)
+		pagesView = lipgloss.JoinHorizontal(lipgloss.Top, leftPage, "   ", divider, "   ", rightPage)
 	} else {
 		pagesView = leftPage
 	}
@@ -186,7 +180,7 @@ func (m model) renderReader() string {
 		if m.readerHelp {
 			body += "\n" + m.renderReaderHelp()
 		}
-		return body
+		return m.renderPinnedLayout(nil, body, nil)
 	}
 
 	header := lipgloss.NewStyle().Bold(true).Render(fmt.Sprintf(
@@ -203,12 +197,16 @@ func (m model) renderReader() string {
 		status = "Reading"
 	}
 
-	parts := []string{header, "", pagesView}
+	body := pagesView
 	if m.readerHelp {
-		parts = append(parts, "", m.renderReaderHelp())
+		body += "\n\n" + m.renderReaderHelp()
 	}
-	parts = append(parts, "", hints, "Status: "+status)
-	return strings.Join(parts, "\n")
+
+	return m.renderPinnedLayout(
+		[]string{header, ""},
+		body,
+		[]string{"", m.renderFooterRow(hints, "Status: "+status)},
+	)
 }
 
 func (m model) readerPageContent(pageIndex, pageWidth, pageHeight int) string {
@@ -246,11 +244,20 @@ func (m model) renderPageBox(content string, pageNumber, totalPages, pageWidth, 
 	pageText := strings.Join(lines, "\n")
 
 	return lipgloss.NewStyle().
-		Border(lipgloss.NormalBorder()).
-		Width(pageWidth+2).
-		Height(pageHeight+1).
-		Padding(0, 1).
+		Width(pageWidth).
+		Height(pageHeight).
 		Render(pageText)
+}
+
+func (m model) renderSpreadDivider(height int) string {
+	if height < 1 {
+		height = 1
+	}
+	lines := make([]string, height)
+	for i := range lines {
+		lines[i] = "│"
+	}
+	return lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(strings.Join(lines, "\n"))
 }
 
 func (m model) renderReaderHelp() string {
@@ -293,4 +300,134 @@ func finishedLabel(done bool) string {
 		return "Finished"
 	}
 	return "Unfinished"
+}
+
+func (m model) renderPinnedLayout(headerLines []string, body string, footerLines []string) string {
+	if m.width <= 0 || m.height <= 0 {
+		parts := make([]string, 0, len(headerLines)+len(footerLines)+1)
+		parts = append(parts, headerLines...)
+		parts = append(parts, body)
+		parts = append(parts, footerLines...)
+		return strings.Join(parts, "\n")
+	}
+
+	bodyLines := strings.Split(body, "\n")
+	if len(bodyLines) == 0 {
+		bodyLines = []string{""}
+	}
+
+	contentHeight := m.height - len(headerLines) - len(footerLines)
+	if contentHeight < 0 {
+		contentHeight = 0
+	}
+
+	if len(bodyLines) > contentHeight {
+		bodyLines = bodyLines[:contentHeight]
+	}
+	for len(bodyLines) < contentHeight {
+		bodyLines = append(bodyLines, "")
+	}
+	bodyLines = m.applyBodyGutter(bodyLines)
+
+	lines := make([]string, 0, len(headerLines)+len(bodyLines)+len(footerLines))
+	lines = append(lines, headerLines...)
+	lines = append(lines, bodyLines...)
+	lines = append(lines, footerLines...)
+
+	view := strings.Join(lines, "\n")
+	return lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top, view)
+}
+
+func (m model) applyBodyGutter(lines []string) []string {
+	if m.width <= 0 || len(lines) == 0 {
+		return lines
+	}
+
+	gutter, innerWidth := m.bodyLayout()
+	leftPad := strings.Repeat(" ", gutter)
+	withGutter := make([]string, 0, len(lines))
+	for _, line := range lines {
+		if innerWidth == 0 {
+			withGutter = append(withGutter, "")
+			continue
+		}
+		if lipgloss.Width(line) > innerWidth {
+			line = truncateRunes(line, innerWidth)
+		}
+		withGutter = append(withGutter, leftPad+line)
+	}
+	return withGutter
+}
+
+func (m model) bodyContentWidth() int {
+	_, width := m.bodyLayout()
+	return width
+}
+
+func (m model) bodyLayout() (leftGutter int, contentWidth int) {
+	if m.width <= 0 {
+		return 0, 0
+	}
+
+	const maxContentWidth = 200
+	width := m.width
+	if width > maxContentWidth {
+		width = maxContentWidth
+	}
+
+	if width == m.width && m.width >= 72 {
+		width = m.width - 4
+	}
+	if width < 24 {
+		width = m.width
+	}
+
+	gutter := (m.width - width) / 2
+	if gutter < 0 {
+		gutter = 0
+	}
+	return gutter, width
+}
+
+func (m model) renderFooterRow(left, right string) string {
+	if m.width <= 0 {
+		return left + " | " + right
+	}
+
+	leftWidth := lipgloss.Width(left)
+	rightWidth := lipgloss.Width(right)
+
+	if rightWidth >= m.width {
+		return truncateRunes(right, m.width)
+	}
+
+	maxLeft := m.width - rightWidth - 1
+	if maxLeft < 0 {
+		maxLeft = 0
+	}
+	if leftWidth > maxLeft {
+		left = truncateRunes(left, maxLeft)
+		leftWidth = lipgloss.Width(left)
+	}
+
+	padding := m.width - leftWidth - rightWidth
+	if padding < 1 {
+		padding = 1
+	}
+	return left + strings.Repeat(" ", padding) + right
+}
+
+func truncateRunes(value string, width int) string {
+	if width <= 0 {
+		return ""
+	}
+
+	runes := []rune(value)
+	if len(runes) <= width {
+		return value
+	}
+	if width <= 3 {
+		return string(runes[:width])
+	}
+	return string(runes[:width-3]) + "..."
 }

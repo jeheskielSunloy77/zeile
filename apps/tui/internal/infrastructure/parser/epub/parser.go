@@ -3,6 +3,7 @@ package epub
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"encoding/xml"
 	"fmt"
 	stdhtml "html"
@@ -41,7 +42,11 @@ type packageDoc struct {
 	} `xml:"spine"`
 }
 
-func Extract(pathToEPUB string) (domain.EPUBCache, error) {
+func Extract(ctx context.Context, pathToEPUB string) (domain.EPUBCache, error) {
+	if err := ctx.Err(); err != nil {
+		return domain.EPUBCache{}, err
+	}
+
 	archive, err := zip.OpenReader(pathToEPUB)
 	if err != nil {
 		return domain.EPUBCache{}, fmt.Errorf("open epub: %w", err)
@@ -86,6 +91,10 @@ func Extract(pathToEPUB string) (domain.EPUBCache, error) {
 	opfDir := path.Dir(opfPath)
 	sections := make([]string, 0, len(pkg.Spine.Itemrefs))
 	for _, itemRef := range pkg.Spine.Itemrefs {
+		if err := ctx.Err(); err != nil {
+			return domain.EPUBCache{}, err
+		}
+
 		href, ok := manifest[itemRef.IDRef]
 		if !ok {
 			continue

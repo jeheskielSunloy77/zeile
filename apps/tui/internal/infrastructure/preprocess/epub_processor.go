@@ -24,7 +24,7 @@ func (p EPUBProcessor) Process(ctx context.Context, input preprocessing.Input, o
 		onProgress("Parsing EPUB", 0.55)
 	}
 
-	cache, err := epub.Extract(input.ManagedPath)
+	cache, err := epub.Extract(ctx, input.ManagedPath)
 	if err != nil {
 		return preprocessing.Result{}, err
 	}

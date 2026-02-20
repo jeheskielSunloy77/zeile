@@ -68,7 +68,7 @@ func (s *LibraryService) ImportBook(ctx context.Context, sourcePath string, mana
 		onProgress("Calculating fingerprint", 0.15)
 	}
 
-	fingerprint, err := files.FingerprintSHA256(cleanPath)
+	fingerprint, err := files.FingerprintSHA256Context(ctx, cleanPath)
 	if err != nil {
 		return domain.Book{}, err
 	}
@@ -88,7 +88,7 @@ func (s *LibraryService) ImportBook(ctx context.Context, sourcePath string, mana
 		if onProgress != nil {
 			onProgress("Copying to managed library", 0.3)
 		}
-		if err := files.CopyFile(cleanPath, managedPath); err != nil {
+		if err := files.CopyFileContext(ctx, cleanPath, managedPath); err != nil {
 			return domain.Book{}, err
 		}
 	}

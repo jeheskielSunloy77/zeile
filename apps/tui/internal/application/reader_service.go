@@ -17,10 +17,11 @@ import (
 )
 
 type TextSession struct {
-	Book     domain.Book
-	Mode     domain.ReadingMode
-	Document reader.TextDocument
-	State    domain.ReadingState
+	Book          domain.Book
+	Mode          domain.ReadingMode
+	Document      reader.TextDocument
+	SectionStarts []int
+	State         domain.ReadingState
 }
 
 type LayoutSession struct {
@@ -46,6 +47,7 @@ func (s *ReaderService) LoadTextSession(ctx context.Context, bookID string, mode
 	}
 
 	var text string
+	sectionStarts := []int(nil)
 	switch mode {
 	case domain.ReadingModeEPUB:
 		cache, err := s.readEPUBCache(book.ID)
@@ -53,6 +55,7 @@ func (s *ReaderService) LoadTextSession(ctx context.Context, bookID string, mode
 			return TextSession{}, err
 		}
 		text = strings.Join(cache.Sections, "\n\n")
+		sectionStarts = computeSectionTokenStarts(cache.Sections)
 	case domain.ReadingModePDFText:
 		cache, err := s.readPDFCache(book.ID)
 		if err != nil {
@@ -69,10 +72,11 @@ func (s *ReaderService) LoadTextSession(ctx context.Context, bookID string, mode
 	}
 
 	return TextSession{
-		Book:     book,
-		Mode:     mode,
-		Document: reader.NewTextDocument(text),
-		State:    state,
+		Book:          book,
+		Mode:          mode,
+		Document:      reader.NewTextDocument(text),
+		SectionStarts: sectionStarts,
+		State:         state,
 	}, nil
 }
 
@@ -89,6 +93,10 @@ func (s *ReaderService) LoadLayoutSession(ctx context.Context, bookID string) (L
 	if err != nil {
 		return LayoutSession{}, err
 	}
+	pages := cache.LayoutPages
+	if len(pages) == 0 {
+		pages = cache.Pages
+	}
 
 	state, err := s.getOrInitState(ctx, book.ID, domain.ReadingModePDFLayout)
 	if err != nil {
@@ -97,7 +105,7 @@ func (s *ReaderService) LoadLayoutSession(ctx context.Context, bookID string) (L
 
 	return LayoutSession{
 		Book:  book,
-		Pages: cache.Pages,
+		Pages: pages,
 		State: state,
 	}, nil
 }
@@ -178,4 +186,21 @@ func (s *ReaderService) getOrInitState(ctx context.Context, bookID string, mode 
 
 func errorsIsNotFound(err error) bool {
 	return errors.Is(err, repository.ErrNotFound)
+}
+
+func computeSectionTokenStarts(sections []string) []int {
+	if len(sections) == 0 {
+		return nil
+	}
+
+	starts := make([]int, len(sections))
+	offset := 0
+	for idx, section := range sections {
+		starts[idx] = offset
+		offset += reader.NewTextDocument(section).TokenCount()
+		if idx < len(sections)-1 {
+			offset += 2
+		}
+	}
+	return starts
 }
