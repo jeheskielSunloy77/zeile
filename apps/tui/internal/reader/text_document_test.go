@@ -33,3 +33,34 @@ func TestPaginatePreservesAnchorAcrossReflow(t *testing.T) {
 		t.Fatalf("expected anchor to remain in later content after reflow, got page index %d", page)
 	}
 }
+
+func TestPaginateWithForcedPageStartsMovesChapterToTop(t *testing.T) {
+	doc := NewTextDocument("chapter one\nalpha beta gamma\ndelta epsilon\nchapter two\nzeta eta theta")
+	offsets := doc.SearchTokenOffsets("chapter two")
+	if len(offsets) == 0 {
+		t.Fatalf("expected chapter offset")
+	}
+	forced := map[int]struct{}{offsets[0]: {}}
+
+	pagination := doc.PaginateWithForcedPageStarts(20, 3, forced)
+	if len(pagination.Pages) < 2 {
+		t.Fatalf("expected at least 2 pages, got %d", len(pagination.Pages))
+	}
+	secondPage := strings.Split(pagination.Pages[1], "\n")
+	if len(secondPage) == 0 || secondPage[0] != "chapter two" {
+		t.Fatalf("expected chapter two on top of next page, got %q", pagination.Pages[1])
+	}
+}
+
+func TestNewTextDocumentWithStylesAppliesTokenStyles(t *testing.T) {
+	doc := NewTextDocumentWithStyles("alpha beta gamma", map[int]TextStyle{
+		1: TextStyleBold | TextStyleItalic,
+	})
+
+	if len(doc.Tokens) < 3 {
+		t.Fatalf("expected word tokens, got %d", len(doc.Tokens))
+	}
+	if doc.Tokens[1].Style != (TextStyleBold | TextStyleItalic) {
+		t.Fatalf("expected style on token 1, got %v", doc.Tokens[1].Style)
+	}
+}

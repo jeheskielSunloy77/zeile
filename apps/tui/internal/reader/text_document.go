@@ -12,9 +12,23 @@ const (
 	TokenNewline
 )
 
+type TextStyle uint16
+
+const (
+	TextStyleBold TextStyle = 1 << iota
+	TextStyleItalic
+	TextStyleUnderline
+	TextStyleMark
+	TextStyleSmall
+	TextStyleSub
+	TextStyleSup
+	TextStyleCode
+)
+
 type Token struct {
 	Type  TokenType
 	Value string
+	Style TextStyle
 }
 
 type TextDocument struct {
@@ -24,28 +38,37 @@ type TextDocument struct {
 }
 
 type TextPagination struct {
-	Pages      []string
-	PageStarts []int
+	Pages          []string
+	PageStarts     []int
+	PageLineStarts [][]int
+	PageLineRanges [][]TokenRange
 }
 
 func NewTextDocument(text string) TextDocument {
+	return NewTextDocumentWithStyles(text, nil)
+}
+
+func NewTextDocumentWithStyles(text string, tokenStyles map[int]TextStyle) TextDocument {
 	text = strings.ReplaceAll(text, "\r\n", "\n")
 	text = strings.ReplaceAll(text, "\r", "\n")
 
 	tokens := make([]Token, 0, len(text)/4)
+	tokenIndex := 0
 	lines := strings.Split(text, "\n")
 	for index, line := range lines {
 		words := strings.Fields(line)
 		for _, word := range words {
-			tokens = append(tokens, Token{Type: TokenWord, Value: word})
+			tokens = append(tokens, Token{Type: TokenWord, Value: word, Style: tokenStyles[tokenIndex]})
+			tokenIndex++
 		}
 		if index < len(lines)-1 {
 			tokens = append(tokens, Token{Type: TokenNewline})
+			tokenIndex++
 		}
 	}
 
 	if len(tokens) == 0 {
-		tokens = append(tokens, Token{Type: TokenWord, Value: ""})
+		tokens = append(tokens, Token{Type: TokenWord, Value: "", Style: tokenStyles[tokenIndex]})
 	}
 
 	plainBuilder := strings.Builder{}
@@ -71,6 +94,11 @@ func NewTextDocument(text string) TextDocument {
 		plain:            plainBuilder.String(),
 		tokenStartOffset: starts,
 	}
+}
+
+type TokenRange struct {
+	Start int
+	End   int
 }
 
 func (d TextDocument) TokenCount() int {
@@ -131,6 +159,10 @@ func (d TextDocument) TokenIndexAtCharOffset(offset int) int {
 }
 
 func (d TextDocument) Paginate(width, height int) TextPagination {
+	return d.PaginateWithForcedPageStarts(width, height, nil)
+}
+
+func (d TextDocument) PaginateWithForcedPageStarts(width, height int, forcedStarts map[int]struct{}) TextPagination {
 	if width < 20 {
 		width = 20
 	}
@@ -141,22 +173,30 @@ func (d TextDocument) Paginate(width, height int) TextPagination {
 	type line struct {
 		Text       string
 		StartToken int
+		EndToken   int
 	}
 
 	lines := make([]line, 0, len(d.Tokens)/3)
-	currentLine := ""
-	lineStartToken := 0
+	currentLine := strings.Builder{}
+	lineStartToken := -1
+	lineEndToken := -1
 	lineHasWords := false
 
 	flushLine := func(forceEmpty bool, startToken int) {
 		if lineHasWords {
-			lines = append(lines, line{Text: currentLine, StartToken: lineStartToken})
-			currentLine = ""
+			lines = append(lines, line{
+				Text:       currentLine.String(),
+				StartToken: lineStartToken,
+				EndToken:   lineEndToken + 1,
+			})
+			currentLine.Reset()
+			lineStartToken = -1
+			lineEndToken = -1
 			lineHasWords = false
 			return
 		}
 		if forceEmpty {
-			lines = append(lines, line{Text: "", StartToken: startToken})
+			lines = append(lines, line{Text: "", StartToken: startToken, EndToken: startToken})
 		}
 	}
 
@@ -167,52 +207,83 @@ func (d TextDocument) Paginate(width, height int) TextPagination {
 			lineStartToken = idx + 1
 		case TokenWord:
 			if !lineHasWords {
-				currentLine = token.Value
+				currentLine.WriteString(token.Value)
 				lineStartToken = idx
+				lineEndToken = idx
 				lineHasWords = true
 				continue
 			}
 
-			candidate := currentLine + " " + token.Value
+			candidate := currentLine.String() + " " + token.Value
 			if len([]rune(candidate)) <= width {
-				currentLine = candidate
+				currentLine.Reset()
+				currentLine.WriteString(candidate)
+				lineEndToken = idx
 				continue
 			}
 
 			flushLine(false, idx)
-			currentLine = token.Value
+			currentLine.WriteString(token.Value)
 			lineStartToken = idx
+			lineEndToken = idx
 			lineHasWords = true
 		}
 	}
 	flushLine(false, len(d.Tokens)-1)
 
 	if len(lines) == 0 {
-		lines = append(lines, line{Text: "", StartToken: 0})
+		lines = append(lines, line{Text: "", StartToken: 0, EndToken: 0})
 	}
 
 	pages := make([]string, 0, (len(lines)/height)+1)
 	pageStarts := make([]int, 0, (len(lines)/height)+1)
-	for i := 0; i < len(lines); i += height {
-		end := i + height
-		if end > len(lines) {
-			end = len(lines)
-		}
+	pageLineStarts := make([][]int, 0, (len(lines)/height)+1)
+	pageLineRanges := make([][]TokenRange, 0, (len(lines)/height)+1)
 
-		lineTexts := make([]string, 0, end-i)
-		for _, item := range lines[i:end] {
-			lineTexts = append(lineTexts, item.Text)
-		}
-		pages = append(pages, strings.Join(lineTexts, "\n"))
+	pageTexts := make([]string, 0, height)
+	pageStartsForLines := make([]int, 0, height)
+	pageRangesForLines := make([]TokenRange, 0, height)
 
-		start := lines[i].StartToken
+	flushPage := func() {
+		if len(pageTexts) == 0 {
+			return
+		}
+		pages = append(pages, strings.Join(pageTexts, "\n"))
+		pageLineStarts = append(pageLineStarts, append([]int(nil), pageStartsForLines...))
+		pageLineRanges = append(pageLineRanges, append([]TokenRange(nil), pageRangesForLines...))
+
+		start := pageStartsForLines[0]
 		if start < 0 {
 			start = 0
 		}
 		pageStarts = append(pageStarts, start)
+
+		pageTexts = pageTexts[:0]
+		pageStartsForLines = pageStartsForLines[:0]
+		pageRangesForLines = pageRangesForLines[:0]
 	}
 
-	return TextPagination{Pages: pages, PageStarts: pageStarts}
+	for _, item := range lines {
+		if len(pageTexts) > 0 {
+			if _, ok := forcedStarts[item.StartToken]; ok {
+				flushPage()
+			}
+		}
+		if len(pageTexts) >= height {
+			flushPage()
+		}
+		pageTexts = append(pageTexts, item.Text)
+		pageStartsForLines = append(pageStartsForLines, item.StartToken)
+		pageRangesForLines = append(pageRangesForLines, TokenRange{Start: item.StartToken, End: item.EndToken})
+	}
+	flushPage()
+
+	return TextPagination{
+		Pages:          pages,
+		PageStarts:     pageStarts,
+		PageLineStarts: pageLineStarts,
+		PageLineRanges: pageLineRanges,
+	}
 }
 
 func (p TextPagination) PageForOffset(offset int) int {
