@@ -112,7 +112,7 @@ bun run ui:shadcn:add <component>
 ### MVP capabilities
 
 - Library list with search, remove, and delete-from-disk confirmation flow
-- Add/import view with path input + file browser, managed copy toggle, progress + cancel
+- Add/import uses a centered step-by-step wizard (source method, source selection, managed copy, import progress)
 - Reader with two-page spread fallback, zen mode, in-book search, go-to page/percent
 - EPUB + PDF support (PDF text mode + layout mode with remembered separate positions)
 - Crash-safe reading progress persistence and startup auto-resume of most recent unfinished book
