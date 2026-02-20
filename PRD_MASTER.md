@@ -251,3 +251,11 @@ These aren’t blockers to proceed, but should be explicitly stated in version P
 - Exact managed-copy storage structure (by book_id vs preserved folders)
 - Terminal capability baseline (Unicode/truecolor expectations, minimum size)
 - PDF layout limitations (images/graphics) and how it’s messaged in UI
+
+## AI Agent Implementation Workflow
+
+1. When instructed to implement a specific version (`V1`, `V2`, and so on), agents must execute that version as a sequence of milestone-complete changes rather than one start-to-finish monolithic change.
+2. The workflow applies equally across all versions and must preserve clean architecture and safety constraints defined in this document.
+3. "Small and concise" applies to commit scope and diff size; commit message detail remains mandatory.
+
+example journey: the user instructs to implement `V2`, the agent starts building the version incrementally, first implement feature 1 then do a git commit with a detailed message, then move to feature 2, and so on until all features in `V2` are implemented. Each commit should be small and focused on a single feature or change to maintain clarity and ease of review.
