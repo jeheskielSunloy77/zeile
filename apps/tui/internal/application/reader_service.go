@@ -21,6 +21,8 @@ type TextSession struct {
 	Mode          domain.ReadingMode
 	Document      reader.TextDocument
 	SectionStarts []int
+	ChapterStarts []int
+	TokenStyles   map[int]reader.TextStyle
 	State         domain.ReadingState
 }
 
@@ -48,6 +50,8 @@ func (s *ReaderService) LoadTextSession(ctx context.Context, bookID string, mode
 
 	var text string
 	sectionStarts := []int(nil)
+	chapterStarts := []int(nil)
+	tokenStyles := map[int]reader.TextStyle(nil)
 	switch mode {
 	case domain.ReadingModeEPUB:
 		cache, err := s.readEPUBCache(book.ID)
@@ -56,6 +60,8 @@ func (s *ReaderService) LoadTextSession(ctx context.Context, bookID string, mode
 		}
 		text = strings.Join(cache.Sections, "\n\n")
 		sectionStarts = computeSectionTokenStarts(cache.Sections)
+		chapterStarts = computeChapterTokenStarts(cache.Sections, cache.SectionChapterLineIndexes)
+		tokenStyles = computeTokenStyles(cache.Sections, cache.SectionInlineStyles)
 	case domain.ReadingModePDFText:
 		cache, err := s.readPDFCache(book.ID)
 		if err != nil {
@@ -74,8 +80,10 @@ func (s *ReaderService) LoadTextSession(ctx context.Context, bookID string, mode
 	return TextSession{
 		Book:          book,
 		Mode:          mode,
-		Document:      reader.NewTextDocument(text),
+		Document:      reader.NewTextDocumentWithStyles(text, tokenStyles),
 		SectionStarts: sectionStarts,
+		ChapterStarts: chapterStarts,
+		TokenStyles:   tokenStyles,
 		State:         state,
 	}, nil
 }
@@ -203,4 +211,158 @@ func computeSectionTokenStarts(sections []string) []int {
 		}
 	}
 	return starts
+}
+
+func computeChapterTokenStarts(sections []string, sectionChapterLineIndexes [][]int) []int {
+	if len(sections) == 0 || len(sectionChapterLineIndexes) == 0 {
+		return nil
+	}
+
+	starts := make([]int, 0, 16)
+	sectionOffset := 0
+	for sectionIdx, section := range sections {
+		if sectionIdx > 0 {
+			sectionOffset += 2
+		}
+
+		lineTokenStarts := lineTokenStartsForSection(section)
+
+		if sectionIdx < len(sectionChapterLineIndexes) {
+			for _, lineIdx := range sectionChapterLineIndexes[sectionIdx] {
+				if lineIdx < 0 || lineIdx >= len(lineTokenStarts) {
+					continue
+				}
+				starts = append(starts, sectionOffset+lineTokenStarts[lineIdx])
+			}
+		}
+
+		sectionOffset += reader.NewTextDocument(section).TokenCount()
+	}
+
+	if len(starts) == 0 {
+		return nil
+	}
+	return starts
+}
+
+func lineTokenStartsForSection(section string) []int {
+	lineCount := len(strings.Split(section, "\n"))
+	if lineCount == 0 {
+		return nil
+	}
+
+	starts := make([]int, 1, lineCount)
+	starts[0] = 0
+	document := reader.NewTextDocument(section)
+	for tokenIdx, token := range document.Tokens {
+		if token.Type == reader.TokenNewline && len(starts) < lineCount {
+			starts = append(starts, tokenIdx+1)
+		}
+	}
+
+	for len(starts) < lineCount {
+		starts = append(starts, document.TokenCount()-1)
+	}
+	return starts
+}
+
+func computeTokenStyles(sections []string, sectionInlineStyles [][]domain.InlineStyleSpan) map[int]reader.TextStyle {
+	if len(sections) == 0 || len(sectionInlineStyles) == 0 {
+		return nil
+	}
+
+	styles := make(map[int]reader.TextStyle)
+	sectionOffset := 0
+	for sectionIdx, section := range sections {
+		if sectionIdx > 0 {
+			sectionOffset += 2
+		}
+
+		lineWordTokenIndexes := sectionLineWordTokenIndexes(section)
+		if sectionIdx < len(sectionInlineStyles) {
+			for _, span := range sectionInlineStyles[sectionIdx] {
+				if span.LineIndex < 0 || span.LineIndex >= len(lineWordTokenIndexes) {
+					continue
+				}
+				lineTokens := lineWordTokenIndexes[span.LineIndex]
+				if len(lineTokens) == 0 {
+					continue
+				}
+				startWord := span.StartWord
+				if startWord < 0 {
+					startWord = 0
+				}
+				endWord := span.EndWord
+				if endWord > len(lineTokens) {
+					endWord = len(lineTokens)
+				}
+				if endWord <= startWord {
+					continue
+				}
+				mappedStyle := mapInlineStyle(span.Style)
+				if mappedStyle == 0 {
+					continue
+				}
+				for wordIdx := startWord; wordIdx < endWord; wordIdx++ {
+					globalToken := sectionOffset + lineTokens[wordIdx]
+					styles[globalToken] |= mappedStyle
+				}
+			}
+		}
+
+		sectionOffset += reader.NewTextDocument(section).TokenCount()
+	}
+
+	if len(styles) == 0 {
+		return nil
+	}
+	return styles
+}
+
+func mapInlineStyle(style domain.InlineStyle) reader.TextStyle {
+	var result reader.TextStyle
+	if style&domain.InlineStyleBold != 0 {
+		result |= reader.TextStyleBold
+	}
+	if style&domain.InlineStyleItalic != 0 {
+		result |= reader.TextStyleItalic
+	}
+	if style&domain.InlineStyleUnderline != 0 {
+		result |= reader.TextStyleUnderline
+	}
+	if style&domain.InlineStyleMark != 0 {
+		result |= reader.TextStyleMark
+	}
+	if style&domain.InlineStyleSmall != 0 {
+		result |= reader.TextStyleSmall
+	}
+	if style&domain.InlineStyleSub != 0 {
+		result |= reader.TextStyleSub
+	}
+	if style&domain.InlineStyleSup != 0 {
+		result |= reader.TextStyleSup
+	}
+	if style&domain.InlineStyleCode != 0 {
+		result |= reader.TextStyleCode
+	}
+	return result
+}
+
+func sectionLineWordTokenIndexes(section string) [][]int {
+	lines := strings.Split(section, "\n")
+	indexes := make([][]int, len(lines))
+	tokenIdx := 0
+	for lineIdx, line := range lines {
+		words := strings.Fields(line)
+		lineIndexes := make([]int, len(words))
+		for wordIdx := range words {
+			lineIndexes[wordIdx] = tokenIdx
+			tokenIdx++
+		}
+		indexes[lineIdx] = lineIndexes
+		if lineIdx < len(lines)-1 {
+			tokenIdx++
+		}
+	}
+	return indexes
 }
