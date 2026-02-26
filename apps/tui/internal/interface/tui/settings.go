@@ -39,7 +39,7 @@ func (m *model) openSettings(from viewID) {
 
 func (m *model) closeSettings() {
 	target := m.settingsReturnView
-	if target != viewReader && target != viewLibrary && target != viewAdd {
+	if target != viewReader && target != viewLibrary && target != viewAdd && target != viewCommunities {
 		target = viewLibrary
 	}
 	m.currentView = target
@@ -54,10 +54,10 @@ func (m *model) handleSettingsKey(msg tea.KeyMsg) tea.Cmd {
 	case "esc", "q":
 		m.closeSettings()
 		return nil
-	case "tab", "]":
+	case "]":
 		m.stepSettingsSection(1)
 		return nil
-	case "shift+tab", "backtab", "[":
+	case "[":
 		m.stepSettingsSection(-1)
 		return nil
 	case "up", "k":

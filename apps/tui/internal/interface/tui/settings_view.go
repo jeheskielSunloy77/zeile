@@ -15,7 +15,7 @@ type settingsFieldView struct {
 }
 
 func (m model) renderSettings() string {
-	header := lipgloss.NewStyle().Bold(true).Render("Zeile - Settings")
+	header := m.renderMainNavHeader(viewSettings)
 	subheader := "Global settings (live apply, auto-save)"
 
 	bodyWidth := m.bodyContentWidth()
@@ -24,8 +24,9 @@ func (m model) renderSettings() string {
 	}
 	body := m.renderSettingsBody(bodyWidth)
 	hints := m.renderFooterHints([]footerHint{
-		{key: "Tab", action: "section"},
-		{key: "Shift+Tab", action: "prev section"},
+		{key: "Tab", action: "next view"},
+		{key: "Shift+Tab", action: "prev view"},
+		{key: "[/]", action: "section"},
 		{key: "↑/↓", action: "field"},
 		{key: "←/→", action: "adjust"},
 		{key: "Enter", action: "apply"},

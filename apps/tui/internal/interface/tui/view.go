@@ -15,8 +15,33 @@ type footerHint struct {
 	action string
 }
 
+func (m model) renderMainNavHeader(active viewID) string {
+	theme := m.activeTheme()
+	brand := lipgloss.NewStyle().Bold(true).Render("Zeile")
+
+	entries := []struct {
+		view  viewID
+		label string
+	}{
+		{view: viewLibrary, label: "Library"},
+		{view: viewCommunities, label: "Communities"},
+		{view: viewSettings, label: "Settings"},
+	}
+
+	items := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		style := lipgloss.NewStyle().Foreground(theme.Muted)
+		if entry.view == active {
+			style = style.Bold(true).Foreground(theme.Primary)
+		}
+		items = append(items, style.Render(entry.label))
+	}
+
+	return brand + strings.Repeat(" ", 3) + strings.Join(items, "  ")
+}
+
 func (m model) renderLibrary() string {
-	header := lipgloss.NewStyle().Bold(true).Render("Zeile - Library")
+	header := m.renderMainNavHeader(viewLibrary)
 	subheader := fmt.Sprintf("Books: %d", len(m.libraryBooks))
 	connection := strings.TrimSpace(m.connectionLabel)
 	if connection == "" {
@@ -83,6 +108,8 @@ func (m model) renderLibrary() string {
 	}
 
 	hints := m.renderFooterHints([]footerHint{
+		{key: "Tab", action: "next view"},
+		{key: "Shift+Tab", action: "prev view"},
 		{key: "/", action: "search"},
 		{key: "a", action: "add"},
 		{key: "c", action: "connect"},
@@ -91,6 +118,44 @@ func (m model) renderLibrary() string {
 		{key: "s", action: "settings"},
 		{key: "Enter", action: "open"},
 		{key: "r", action: "remove"},
+		{key: "q", action: "quit"},
+	})
+	status := m.renderStatusToast("Ready")
+
+	return m.renderPinnedLayout(
+		headerLines,
+		body,
+		[]string{"", m.renderFooterRow(hints, status)},
+	)
+}
+
+func (m model) renderCommunities() string {
+	headerLines := []string{
+		m.renderMainNavHeader(viewCommunities),
+		"Communities",
+		"",
+	}
+
+	body := "Communities - Coming soon."
+	if m.width > 0 && m.height > 0 {
+		bodyWidth := m.bodyContentWidth()
+		if bodyWidth < 1 {
+			bodyWidth = 1
+		}
+		centered := lipgloss.PlaceHorizontal(bodyWidth, lipgloss.Center, body)
+		contentHeight := m.mainLayoutHeight() - len(headerLines) - 2
+		if contentHeight < 1 {
+			contentHeight = 1
+		}
+		lines := make([]string, contentHeight)
+		lines[(contentHeight-1)/2] = centered
+		body = strings.Join(lines, "\n")
+	}
+
+	hints := m.renderFooterHints([]footerHint{
+		{key: "Tab", action: "next view"},
+		{key: "Shift+Tab", action: "prev view"},
+		{key: "s", action: "settings"},
 		{key: "q", action: "quit"},
 	})
 	status := m.renderStatusToast("Ready")

@@ -419,7 +419,7 @@ func TestRenderLibraryCentersEmptyStateInBody(t *testing.T) {
 	headerIndent := 0
 	messageIndent := 0
 	for idx, line := range lines {
-		if strings.Contains(line, "Zeile - Library") {
+		if strings.Contains(line, "Zeile") && strings.Contains(line, "Library") && strings.Contains(line, "Communities") && strings.Contains(line, "Settings") {
 			headerLine = idx
 			headerIndent = leadingSpaces(line)
 		}
@@ -540,6 +540,50 @@ func TestLibrarySettingsKeyOpensSettingsView(t *testing.T) {
 	}
 }
 
+func TestMainNavTabCyclesViews(t *testing.T) {
+	container := newTestContainer(t)
+	m := New(container).(model)
+	m.startupCompleted = true
+	m.currentView = viewLibrary
+
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyTab})
+	m = updated.(model)
+	if m.currentView != viewCommunities {
+		t.Fatalf("expected communities view after first Tab, got %v", m.currentView)
+	}
+
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyTab})
+	m = updated.(model)
+	if m.currentView != viewSettings {
+		t.Fatalf("expected settings view after second Tab, got %v", m.currentView)
+	}
+
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyTab})
+	m = updated.(model)
+	if m.currentView != viewLibrary {
+		t.Fatalf("expected library view after third Tab, got %v", m.currentView)
+	}
+}
+
+func TestMainNavShiftTabCyclesViewsBackward(t *testing.T) {
+	container := newTestContainer(t)
+	m := New(container).(model)
+	m.startupCompleted = true
+	m.currentView = viewLibrary
+
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyShiftTab})
+	m = updated.(model)
+	if m.currentView != viewSettings {
+		t.Fatalf("expected settings view after Shift+Tab from library, got %v", m.currentView)
+	}
+
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyShiftTab})
+	m = updated.(model)
+	if m.currentView != viewCommunities {
+		t.Fatalf("expected communities view after second Shift+Tab, got %v", m.currentView)
+	}
+}
+
 func TestReaderSettingsKeyOpensSettingsView(t *testing.T) {
 	container := newTestContainer(t)
 	book := seedBookWithEPUBCache(t, container, "reader-settings", "")
@@ -564,6 +608,74 @@ func TestReaderSettingsKeyOpensSettingsView(t *testing.T) {
 	_ = m.handleSettingsKey(tea.KeyMsg{Type: tea.KeyEsc})
 	if m.currentView != viewReader {
 		t.Fatalf("expected return to reader, got %v", m.currentView)
+	}
+}
+
+func TestSettingsTabSwitchesMainView(t *testing.T) {
+	container := newTestContainer(t)
+	m := New(container).(model)
+	m.startupCompleted = true
+	m.currentView = viewLibrary
+	m.openSettings(viewLibrary)
+
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyTab})
+	m = updated.(model)
+	if m.currentView != viewLibrary {
+		t.Fatalf("expected Tab from settings to switch to library view, got %v", m.currentView)
+	}
+}
+
+func TestSettingsSectionSwitchUsesBrackets(t *testing.T) {
+	container := newTestContainer(t)
+	m := New(container).(model)
+	m.startupCompleted = true
+	m.openSettings(viewLibrary)
+
+	if m.settingsSection != settingsSectionTheme {
+		t.Fatalf("expected initial settings section theme, got %v", m.settingsSection)
+	}
+
+	_ = m.handleSettingsKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("]")})
+	if m.settingsSection != settingsSectionReading {
+		t.Fatalf("expected next section after ], got %v", m.settingsSection)
+	}
+
+	_ = m.handleSettingsKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("[")})
+	if m.settingsSection != settingsSectionTheme {
+		t.Fatalf("expected previous section after [, got %v", m.settingsSection)
+	}
+}
+
+func TestRenderCommunitiesShowsPlaceholder(t *testing.T) {
+	m := model{
+		currentView: viewCommunities,
+		width:       100,
+		height:      24,
+	}
+
+	rendered := stripANSI(m.renderCommunities())
+	if !strings.Contains(rendered, "Communities - Coming soon.") {
+		t.Fatalf("expected communities placeholder, got %q", rendered)
+	}
+}
+
+func TestCommunitiesSettingsReturnToCommunities(t *testing.T) {
+	container := newTestContainer(t)
+	m := New(container).(model)
+	m.startupCompleted = true
+	m.currentView = viewCommunities
+
+	_ = m.handleCommunitiesKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("s")})
+	if m.currentView != viewSettings {
+		t.Fatalf("expected settings view, got %v", m.currentView)
+	}
+	if m.settingsReturnView != viewCommunities {
+		t.Fatalf("expected return view communities, got %v", m.settingsReturnView)
+	}
+
+	_ = m.handleSettingsKey(tea.KeyMsg{Type: tea.KeyEsc})
+	if m.currentView != viewCommunities {
+		t.Fatalf("expected return to communities, got %v", m.currentView)
 	}
 }
 

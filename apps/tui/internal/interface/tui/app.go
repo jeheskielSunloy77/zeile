@@ -24,6 +24,7 @@ type viewID int
 
 const (
 	viewLibrary viewID = iota
+	viewCommunities
 	viewAdd
 	viewReader
 	viewSettings
@@ -467,9 +468,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+		if m.isMainNavView(m.currentView) {
+			switch msg.String() {
+			case "tab":
+				m.stepMainView(1)
+				return m, nil
+			case "shift+tab", "backtab":
+				m.stepMainView(-1)
+				return m, nil
+			}
+		}
+
 		switch m.currentView {
 		case viewLibrary:
 			cmd := m.handleLibraryKey(msg)
+			return m, cmd
+		case viewCommunities:
+			cmd := m.handleCommunitiesKey(msg)
 			return m, cmd
 		case viewAdd:
 			cmd := m.handleAddKey(msg)
@@ -646,6 +661,8 @@ func (m model) View() string {
 	switch m.currentView {
 	case viewLibrary:
 		body = m.renderLibrary()
+	case viewCommunities:
+		body = m.renderCommunities()
 	case viewAdd:
 		body = m.renderAdd()
 	case viewReader:
