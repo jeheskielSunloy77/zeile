@@ -28,6 +28,9 @@ type stubAuthService struct {
 	startGoogleAuthFn    func(ctx context.Context) (*application.GoogleAuthStart, error)
 	completeGoogleAuthFn func(ctx context.Context, code, state, stateCookie, userAgent, ipAddress string) (*application.AuthResult, error)
 	verifyEmailFn        func(ctx context.Context, input applicationdto.VerifyEmailInput) (*domain.User, error)
+	startDeviceAuthFn    func(ctx context.Context) (*application.DeviceAuthStartResult, error)
+	pollDeviceAuthFn     func(ctx context.Context, input applicationdto.DeviceAuthPollInput, userAgent, ipAddress string) (*application.DeviceAuthPollResult, error)
+	approveDeviceAuthFn  func(ctx context.Context, userID uuid.UUID, input applicationdto.DeviceAuthApproveInput) error
 	refreshFn            func(ctx context.Context, refreshToken, userAgent, ipAddress string) (*application.AuthResult, error)
 	logoutFn             func(ctx context.Context, refreshToken string) error
 	logoutAllFn          func(ctx context.Context, userID uuid.UUID) error
@@ -68,6 +71,27 @@ func (s *stubAuthService) VerifyEmail(ctx context.Context, input applicationdto.
 		return s.verifyEmailFn(ctx, input)
 	}
 	return nil, nil
+}
+
+func (s *stubAuthService) StartDeviceAuth(ctx context.Context) (*application.DeviceAuthStartResult, error) {
+	if s.startDeviceAuthFn != nil {
+		return s.startDeviceAuthFn(ctx)
+	}
+	return nil, nil
+}
+
+func (s *stubAuthService) PollDeviceAuth(ctx context.Context, input applicationdto.DeviceAuthPollInput, userAgent, ipAddress string) (*application.DeviceAuthPollResult, error) {
+	if s.pollDeviceAuthFn != nil {
+		return s.pollDeviceAuthFn(ctx, input, userAgent, ipAddress)
+	}
+	return nil, nil
+}
+
+func (s *stubAuthService) ApproveDeviceAuth(ctx context.Context, userID uuid.UUID, input applicationdto.DeviceAuthApproveInput) error {
+	if s.approveDeviceAuthFn != nil {
+		return s.approveDeviceAuthFn(ctx, userID, input)
+	}
+	return nil
 }
 
 func (s *stubAuthService) Refresh(ctx context.Context, refreshToken, userAgent, ipAddress string) (*application.AuthResult, error) {
@@ -335,6 +359,136 @@ func TestAuthHandlerVerifyEmail_Success(t *testing.T) {
 	require.Equal(t, "user@example.com", got.Email)
 }
 
+// Ensures DeviceStart returns a device code payload for terminal login.
+func TestAuthHandlerDeviceStart_Success(t *testing.T) {
+	srv := newTestServer()
+	app := newTestApp(srv)
+
+	authService := &stubAuthService{
+		startDeviceAuthFn: func(ctx context.Context) (*application.DeviceAuthStartResult, error) {
+			return &application.DeviceAuthStartResult{
+				DeviceCode:      "device-code",
+				UserCode:        "ABCD-EFGH",
+				ExpiresAt:       time.Now().Add(10 * time.Minute),
+				IntervalSeconds: 5,
+			}, nil
+		},
+	}
+
+	h := NewAuthHandler(NewHandler(srv), authService)
+	app.Post("/device/start", h.DeviceStart())
+
+	req, err := http.NewRequest(http.MethodPost, "/device/start", bytes.NewReader(mustJSON(t, map[string]any{})))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	var got application.DeviceAuthStartResult
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&got))
+	require.Equal(t, "device-code", got.DeviceCode)
+	require.Equal(t, "ABCD-EFGH", got.UserCode)
+	require.Equal(t, "/api/v1/auth/device", got.VerificationURI)
+	require.Equal(t, 5, got.IntervalSeconds)
+}
+
+// Ensures DeviceApprovePage returns an HTML page for entering user codes.
+func TestAuthHandlerDeviceApprovePage_Success(t *testing.T) {
+	srv := newTestServer()
+	app := newTestApp(srv)
+
+	h := NewAuthHandler(NewHandler(srv), &stubAuthService{})
+	app.Get("/device", h.DeviceApprovePage())
+
+	req, err := http.NewRequest(http.MethodGet, "/device", nil)
+	require.NoError(t, err)
+
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Contains(t, resp.Header.Get("Content-Type"), "text/html")
+
+	var body bytes.Buffer
+	_, err = body.ReadFrom(resp.Body)
+	require.NoError(t, err)
+	require.Contains(t, body.String(), "Approve Device")
+}
+
+// Ensures DevicePoll maps service response and returns pending state.
+func TestAuthHandlerDevicePoll_Pending(t *testing.T) {
+	srv := newTestServer()
+	app := newTestApp(srv)
+
+	authService := &stubAuthService{
+		pollDeviceAuthFn: func(ctx context.Context, input applicationdto.DeviceAuthPollInput, userAgent, ipAddress string) (*application.DeviceAuthPollResult, error) {
+			require.Equal(t, "device-code-123456", input.DeviceCode)
+			exp := time.Now().Add(5 * time.Minute)
+			return &application.DeviceAuthPollResult{
+				Status:          "pending",
+				ExpiresAt:       &exp,
+				IntervalSeconds: 5,
+			}, nil
+		},
+	}
+
+	h := NewAuthHandler(NewHandler(srv), authService)
+	app.Post("/device/poll", h.DevicePoll())
+
+	req, err := http.NewRequest(http.MethodPost, "/device/poll", bytes.NewReader(mustJSON(t, map[string]any{
+		"deviceCode": "device-code-123456",
+	})))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var got application.DeviceAuthPollResult
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&got))
+	require.Equal(t, "pending", got.Status)
+	require.Equal(t, 5, got.IntervalSeconds)
+}
+
+// Ensures DeviceApprove reads authenticated user ID and forwards approval.
+func TestAuthHandlerDeviceApprove_Success(t *testing.T) {
+	srv := newTestServer()
+	app := newTestApp(srv)
+
+	userID := uuid.New()
+	var gotUserID uuid.UUID
+	var gotCode string
+	authService := &stubAuthService{
+		approveDeviceAuthFn: func(ctx context.Context, approvedBy uuid.UUID, input applicationdto.DeviceAuthApproveInput) error {
+			gotUserID = approvedBy
+			gotCode = input.UserCode
+			return nil
+		},
+	}
+
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals(middleware.UserIDKey, userID.String())
+		return c.Next()
+	})
+
+	h := NewAuthHandler(NewHandler(srv), authService)
+	app.Post("/device/approve", h.DeviceApprove())
+
+	req, err := http.NewRequest(http.MethodPost, "/device/approve", bytes.NewReader(mustJSON(t, map[string]any{
+		"userCode": "ABCD-EFGH",
+	})))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, userID, gotUserID)
+	require.Equal(t, "ABCD-EFGH", gotCode)
+}
+
 // Ensures Refresh pulls the refresh cookie and sets new auth cookies.
 func TestAuthHandlerRefresh_Success(t *testing.T) {
 	srv := newTestServer()
@@ -375,6 +529,39 @@ func TestAuthHandlerRefresh_Success(t *testing.T) {
 	require.NotNil(t, cookieByName(resp.Cookies(), "refresh_token"))
 }
 
+// Ensures Refresh accepts refreshToken in body when cookie is absent.
+func TestAuthHandlerRefresh_UsesBodyRefreshToken(t *testing.T) {
+	srv := newTestServer()
+	app := newTestApp(srv)
+
+	userID := uuid.New()
+	var gotToken string
+	authService := &stubAuthService{
+		refreshFn: func(ctx context.Context, token, userAgent, ipAddress string) (*application.AuthResult, error) {
+			gotToken = token
+			return &application.AuthResult{
+				User:         &domain.User{ID: userID, Email: "user@example.com"},
+				Token:        application.AuthToken{Token: "access", ExpiresAt: time.Now().Add(time.Hour)},
+				RefreshToken: application.AuthToken{Token: "refresh-new", ExpiresAt: time.Now().Add(24 * time.Hour)},
+			}, nil
+		},
+	}
+
+	h := NewAuthHandler(NewHandler(srv), authService)
+	app.Post("/refresh", h.Refresh())
+
+	req, err := http.NewRequest(http.MethodPost, "/refresh", bytes.NewReader(mustJSON(t, map[string]any{
+		"refreshToken": strings.Repeat("r", 32),
+	})))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, strings.Repeat("r", 32), gotToken)
+}
+
 // Ensures Logout clears cookies and forwards the refresh token.
 func TestAuthHandlerLogout_Success(t *testing.T) {
 	srv := newTestServer()
@@ -412,6 +599,34 @@ func TestAuthHandlerLogout_Success(t *testing.T) {
 	require.NotNil(t, refreshCookie)
 	require.Empty(t, accessCookie.Value)
 	require.Empty(t, refreshCookie.Value)
+}
+
+// Ensures Logout accepts refreshToken in body when cookie is absent.
+func TestAuthHandlerLogout_UsesBodyRefreshToken(t *testing.T) {
+	srv := newTestServer()
+	app := newTestApp(srv)
+
+	var gotToken string
+	authService := &stubAuthService{
+		logoutFn: func(ctx context.Context, token string) error {
+			gotToken = token
+			return nil
+		},
+	}
+
+	h := NewAuthHandler(NewHandler(srv), authService)
+	app.Post("/logout", h.Logout())
+
+	req, err := http.NewRequest(http.MethodPost, "/logout", bytes.NewReader(mustJSON(t, map[string]any{
+		"refreshToken": strings.Repeat("r", 32),
+	})))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, strings.Repeat("r", 32), gotToken)
 }
 
 // Ensures Me rejects requests without a user ID in context.

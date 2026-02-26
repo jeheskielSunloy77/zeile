@@ -104,16 +104,152 @@ func (h *AuthHandler) VerifyEmail() fiber.Handler {
 	}, http.StatusOK, &httpdto.VerifyEmailRequest{})
 }
 
+func (h *AuthHandler) DeviceStart() fiber.Handler {
+	return Handle(h.Handler, func(c *fiber.Ctx, _ *httpdto.Empty) (*application.DeviceAuthStartResult, error) {
+		start, err := h.authService.StartDeviceAuth(c.UserContext())
+		if err != nil {
+			return nil, err
+		}
+		if start == nil {
+			return nil, errs.NewInternalServerError()
+		}
+
+		verificationURI := "/api/v1/auth/device"
+		if baseURL := strings.TrimSpace(c.BaseURL()); baseURL != "" {
+			if parsedURL, err := url.Parse(baseURL); err == nil && parsedURL.Scheme != "" && parsedURL.Host != "" {
+				verificationURI = (&url.URL{
+					Scheme: parsedURL.Scheme,
+					Host:   parsedURL.Host,
+					Path:   verificationURI,
+				}).String()
+			}
+		}
+
+		startCopy := *start
+		startCopy.UserCode = strings.TrimSpace(startCopy.UserCode)
+		startCopy.DeviceCode = strings.TrimSpace(startCopy.DeviceCode)
+		startCopy.VerificationURI = verificationURI
+		return &startCopy, nil
+	}, http.StatusCreated, &httpdto.Empty{})
+}
+
+func (h *AuthHandler) DeviceApprovePage() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		const page = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Device Authorization</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; max-width: 720px; margin: 4rem auto; padding: 0 1rem; line-height: 1.5; }
+    input { width: 100%; padding: 0.75rem; font-size: 1rem; margin: 0.5rem 0 1rem; text-transform: uppercase; }
+    button { padding: 0.75rem 1rem; font-size: 1rem; cursor: pointer; }
+    .muted { opacity: 0.75; }
+    .result { margin-top: 1rem; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <h1>Approve Device</h1>
+  <p class="muted">Sign in first (if needed), then enter the code shown in your terminal.</p>
+  <label for="code">User code</label>
+  <input id="code" placeholder="ABCD-EFGH" autocomplete="off" />
+  <button id="approve">Approve</button>
+  <p id="result" class="result"></p>
+  <script>
+    const codeInput = document.getElementById('code');
+    const approveButton = document.getElementById('approve');
+    const resultEl = document.getElementById('result');
+
+    async function approve() {
+      const userCode = (codeInput.value || '').trim().toUpperCase();
+      if (!userCode) {
+        resultEl.textContent = 'Enter a code first.';
+        return;
+      }
+
+      approveButton.disabled = true;
+      resultEl.textContent = 'Submitting...';
+
+      try {
+        const response = await fetch('/api/v1/auth/device/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ userCode }),
+        });
+
+        let payload = {};
+        try {
+          payload = await response.json();
+        } catch (e) {}
+
+        if (!response.ok) {
+          const message = (payload && payload.message) ? payload.message : 'Approval failed';
+          resultEl.textContent = message + ' (status ' + response.status + ')';
+          return;
+        }
+
+        resultEl.textContent = 'Device approved. Return to your terminal.';
+      } finally {
+        approveButton.disabled = false;
+      }
+    }
+
+    approveButton.addEventListener('click', approve);
+    codeInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        approve();
+      }
+    });
+  </script>
+</body>
+</html>`
+		c.Type("html")
+		return c.Status(http.StatusOK).SendString(page)
+	}
+}
+
+func (h *AuthHandler) DevicePoll() fiber.Handler {
+	return Handle(h.Handler, func(c *fiber.Ctx, req *httpdto.DeviceAuthPollRequest) (*application.DeviceAuthPollResult, error) {
+		return h.authService.PollDeviceAuth(c.UserContext(), req.ToUsecase(), c.Get(fiber.HeaderUserAgent), c.IP())
+	}, http.StatusOK, &httpdto.DeviceAuthPollRequest{})
+}
+
+func (h *AuthHandler) DeviceApprove() fiber.Handler {
+	return Handle(h.Handler, func(c *fiber.Ctx, req *httpdto.DeviceAuthApproveRequest) (*response.Response[any], error) {
+		userID, err := h.parseUserID(c)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := h.authService.ApproveDeviceAuth(c.UserContext(), userID, req.ToUsecase()); err != nil {
+			return nil, err
+		}
+
+		resp := response.Response[any]{
+			Status:  http.StatusOK,
+			Success: true,
+			Message: "Device approved successfully.",
+		}
+		return &resp, nil
+	}, http.StatusOK, &httpdto.DeviceAuthApproveRequest{})
+}
+
 func (h *AuthHandler) Refresh() fiber.Handler {
-	return Handle(h.Handler, func(c *fiber.Ctx, _ *httpdto.Empty) (*domain.User, error) {
+	return Handle(h.Handler, func(c *fiber.Ctx, req *httpdto.RefreshRequest) (*domain.User, error) {
 		refreshToken := c.Cookies(h.refreshCookieName())
+		if req != nil && req.RefreshToken != nil && strings.TrimSpace(*req.RefreshToken) != "" {
+			refreshToken = strings.TrimSpace(*req.RefreshToken)
+		}
 		result, err := h.authService.Refresh(c.UserContext(), refreshToken, c.Get(fiber.HeaderUserAgent), c.IP())
 		if err != nil {
 			return nil, err
 		}
 		h.setAuthCookies(c, result)
 		return result.User, nil
-	}, http.StatusOK, &httpdto.Empty{})
+	}, http.StatusOK, &httpdto.RefreshRequest{})
 }
 
 func (h *AuthHandler) Me() fiber.Handler {
@@ -147,8 +283,11 @@ func (h *AuthHandler) ResendVerification() fiber.Handler {
 }
 
 func (h *AuthHandler) Logout() fiber.Handler {
-	return Handle(h.Handler, func(c *fiber.Ctx, _ *httpdto.Empty) (*response.Response[any], error) {
+	return Handle(h.Handler, func(c *fiber.Ctx, req *httpdto.LogoutRequest) (*response.Response[any], error) {
 		refreshToken := c.Cookies(h.refreshCookieName())
+		if req != nil && req.RefreshToken != nil && strings.TrimSpace(*req.RefreshToken) != "" {
+			refreshToken = strings.TrimSpace(*req.RefreshToken)
+		}
 		if err := h.authService.Logout(c.UserContext(), refreshToken); err != nil {
 			return nil, err
 		}
@@ -160,7 +299,7 @@ func (h *AuthHandler) Logout() fiber.Handler {
 			Message: "Logged out successfully.",
 		}
 		return &resp, nil
-	}, http.StatusOK, &httpdto.Empty{})
+	}, http.StatusOK, &httpdto.LogoutRequest{})
 }
 
 func (h *AuthHandler) LogoutAll() fiber.Handler {

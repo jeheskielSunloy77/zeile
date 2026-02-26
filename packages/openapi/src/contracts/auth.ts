@@ -1,6 +1,11 @@
 import {
+	ZAuthDeviceApproveDTO,
+	ZAuthDevicePollDTO,
+	ZAuthDevicePollResponse,
+	ZAuthDeviceStartResponse,
 	ZAuthGoogleCallbackQuery,
 	ZAuthLoginDTO,
+	ZAuthRefreshDTO,
 	ZAuthRegisterDTO,
 	ZAuthResult,
 	ZAuthVerifyEmailDTO,
@@ -56,6 +61,39 @@ export const authContract = c.router({
 			302: ZEmpty,
 		},
 	},
+	deviceStart: {
+		summary: 'Start device authorization',
+		description: 'Create a short-lived device code and user code for terminal login.',
+		path: '/api/v1/auth/device/start',
+		method: 'POST',
+		body: ZEmpty,
+		responses: {
+			201: ZAuthDeviceStartResponse,
+			...failResponses,
+		},
+	},
+	devicePoll: {
+		summary: 'Poll device authorization',
+		description: 'Poll for approval status and receive auth tokens once approved.',
+		path: '/api/v1/auth/device/poll',
+		method: 'POST',
+		body: ZAuthDevicePollDTO,
+		responses: {
+			200: ZAuthDevicePollResponse,
+			...failResponses,
+		},
+	},
+	deviceApprove: {
+		summary: 'Approve device authorization',
+		description: 'Approve a device login request with a user code.',
+		path: '/api/v1/auth/device/approve',
+		method: 'POST',
+		body: ZAuthDeviceApproveDTO,
+		responses: {
+			200: ZResponse,
+			...failResponses,
+		},
+	},
 	verifyEmail: {
 		summary: 'Verify email',
 		description: 'Verify user email using a verification code',
@@ -69,10 +107,10 @@ export const authContract = c.router({
 	},
 	refresh: {
 		summary: 'Refresh session',
-		description: 'Refresh access using the refresh cookie',
+		description: 'Refresh access using refresh cookie or refresh token in body.',
 		path: '/api/v1/auth/refresh',
 		method: 'POST',
-		body: ZEmpty,
+		body: ZAuthRefreshDTO,
 		responses: {
 			200: ZAuthResult,
 			...failResponses,
@@ -101,10 +139,10 @@ export const authContract = c.router({
 	},
 	logout: {
 		summary: 'Logout',
-		description: 'Logout the current session',
+		description: 'Logout the current session using refresh cookie or body token.',
 		path: '/api/v1/auth/logout',
 		method: 'POST',
-		body: ZEmpty,
+		body: ZAuthRefreshDTO,
 		responses: {
 			200: ZResponse,
 			...failResponses,

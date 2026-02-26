@@ -13,6 +13,7 @@ import (
 	"math/big"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -40,6 +41,13 @@ var (
 
 const googleStateTTL = 10 * time.Minute
 
+const (
+	deviceAuthCodeTTL       = 10 * time.Minute
+	deviceAuthPollInterval  = 5 * time.Second
+	deviceAuthUserCodeSize  = 8
+	deviceAuthUserCodeGroup = 4
+)
+
 type googleOAuthConfig interface {
 	AuthCodeURL(state string, opts ...oauth2.AuthCodeOption) string
 	Exchange(ctx context.Context, code string, opts ...oauth2.AuthCodeOption) (*oauth2.Token, error)
@@ -50,6 +58,15 @@ type googleTokenValidator func(ctx context.Context, idToken, audience string) (*
 type googleStatePayload struct {
 	State     string    `json:"state"`
 	ExpiresAt time.Time `json:"expiresAt"`
+}
+
+type deviceAuthRecord struct {
+	DeviceCodeHash   string
+	UserCodeHash     string
+	IntervalSeconds  int
+	ExpiresAt        time.Time
+	ApprovedByUserID *uuid.UUID
+	ConsumedAt       *time.Time
 }
 
 type authService struct {
@@ -68,6 +85,10 @@ type authService struct {
 	googleTokenValidator googleTokenValidator
 	emailVerificationTTL time.Duration
 	now                  func() time.Time
+
+	deviceAuthMu     sync.Mutex
+	deviceAuthByCode map[string]deviceAuthRecord
+	deviceAuthByUser map[string]string
 }
 
 type AuthToken struct {
@@ -81,12 +102,32 @@ type AuthResult struct {
 	RefreshToken AuthToken    `json:"refreshToken"`
 }
 
+type DeviceAuthStartResult struct {
+	DeviceCode      string    `json:"deviceCode"`
+	UserCode        string    `json:"userCode"`
+	VerificationURI string    `json:"verificationUri,omitempty"`
+	ExpiresAt       time.Time `json:"expiresAt"`
+	IntervalSeconds int       `json:"intervalSeconds"`
+}
+
+type DeviceAuthPollResult struct {
+	Status          string       `json:"status"`
+	ExpiresAt       *time.Time   `json:"expiresAt,omitempty"`
+	IntervalSeconds int          `json:"intervalSeconds,omitempty"`
+	User            *domain.User `json:"user,omitempty"`
+	Token           *AuthToken   `json:"token,omitempty"`
+	RefreshToken    *AuthToken   `json:"refreshToken,omitempty"`
+}
+
 type AuthService interface {
 	Register(ctx context.Context, input applicationdto.RegisterInput, userAgent, ipAddress string) (*AuthResult, error)
 	Login(ctx context.Context, input applicationdto.LoginInput, userAgent, ipAddress string) (*AuthResult, error)
 	StartGoogleAuth(ctx context.Context) (*GoogleAuthStart, error)
 	CompleteGoogleAuth(ctx context.Context, code, state, stateCookie, userAgent, ipAddress string) (*AuthResult, error)
 	VerifyEmail(ctx context.Context, input applicationdto.VerifyEmailInput) (*domain.User, error)
+	StartDeviceAuth(ctx context.Context) (*DeviceAuthStartResult, error)
+	PollDeviceAuth(ctx context.Context, input applicationdto.DeviceAuthPollInput, userAgent, ipAddress string) (*DeviceAuthPollResult, error)
+	ApproveDeviceAuth(ctx context.Context, userID uuid.UUID, input applicationdto.DeviceAuthApproveInput) error
 	Refresh(ctx context.Context, refreshToken, userAgent, ipAddress string) (*AuthResult, error)
 	Logout(ctx context.Context, refreshToken string) error
 	LogoutAll(ctx context.Context, userID uuid.UUID) error
@@ -134,6 +175,8 @@ func NewAuthService(cfg *config.AuthConfig, repo port.AuthRepository, sessionRep
 		googleTokenValidator: idtoken.Validate,
 		emailVerificationTTL: cfg.EmailVerificationTTL,
 		now:                  time.Now,
+		deviceAuthByCode:     make(map[string]deviceAuthRecord),
+		deviceAuthByUser:     make(map[string]string),
 	}
 }
 
@@ -474,6 +517,166 @@ func (s *authService) VerifyEmail(ctx context.Context, input applicationdto.Veri
 	return user, nil
 }
 
+func (s *authService) StartDeviceAuth(ctx context.Context) (*DeviceAuthStartResult, error) {
+	_ = ctx
+	now := s.nowUTC()
+	deviceCode, err := generateDeviceCode()
+	if err != nil {
+		return nil, errs.NewInternalServerError()
+	}
+	userCode, err := generateUserCode(deviceAuthUserCodeSize, deviceAuthUserCodeGroup)
+	if err != nil {
+		return nil, errs.NewInternalServerError()
+	}
+
+	deviceCodeHash := hashDeviceAuthToken(deviceCode)
+	userCodeHash := hashDeviceAuthToken(normalizeUserCode(userCode))
+	expiresAt := now.Add(deviceAuthCodeTTL)
+	record := deviceAuthRecord{
+		DeviceCodeHash:  deviceCodeHash,
+		UserCodeHash:    userCodeHash,
+		IntervalSeconds: int(deviceAuthPollInterval.Seconds()),
+		ExpiresAt:       expiresAt,
+	}
+
+	s.deviceAuthMu.Lock()
+	s.cleanupExpiredDeviceAuthLocked(now)
+	s.deviceAuthByCode[deviceCodeHash] = record
+	s.deviceAuthByUser[userCodeHash] = deviceCodeHash
+	s.deviceAuthMu.Unlock()
+
+	return &DeviceAuthStartResult{
+		DeviceCode:      deviceCode,
+		UserCode:        userCode,
+		ExpiresAt:       expiresAt,
+		IntervalSeconds: record.IntervalSeconds,
+	}, nil
+}
+
+func (s *authService) PollDeviceAuth(ctx context.Context, input applicationdto.DeviceAuthPollInput, userAgent, ipAddress string) (*DeviceAuthPollResult, error) {
+	normalized := input.Normalized()
+	if normalized.DeviceCode == "" {
+		return nil, errs.NewBadRequestError("deviceCode is required", true, []errs.FieldError{{Field: "deviceCode", Error: "is required"}}, nil)
+	}
+
+	now := s.nowUTC()
+	deviceCodeHash := hashDeviceAuthToken(normalized.DeviceCode)
+
+	s.deviceAuthMu.Lock()
+	s.cleanupExpiredDeviceAuthLocked(now)
+
+	record, ok := s.deviceAuthByCode[deviceCodeHash]
+	if !ok {
+		s.deviceAuthMu.Unlock()
+		return nil, errs.NewBadRequestError("invalid_device_code", true, nil, nil)
+	}
+
+	if record.ConsumedAt != nil {
+		s.deviceAuthMu.Unlock()
+		return nil, &errs.ErrorResponse{
+			Message:  "device_code_already_used",
+			Status:   409,
+			Success:  false,
+			Override: true,
+		}
+	}
+
+	if record.ApprovedByUserID == nil {
+		expiresAt := record.ExpiresAt
+		interval := record.IntervalSeconds
+		s.deviceAuthMu.Unlock()
+		return &DeviceAuthPollResult{
+			Status:          "pending",
+			ExpiresAt:       &expiresAt,
+			IntervalSeconds: interval,
+		}, nil
+	}
+
+	approvedUserID := *record.ApprovedByUserID
+	consumedAt := now
+	record.ConsumedAt = &consumedAt
+	s.deviceAuthByCode[deviceCodeHash] = record
+	delete(s.deviceAuthByUser, record.UserCodeHash)
+	s.deviceAuthMu.Unlock()
+
+	user, err := s.repo.GetByID(ctx, approvedUserID)
+	if err != nil {
+		return nil, sqlerr.HandleError(err)
+	}
+
+	refreshToken, refreshExp, err := s.createSession(ctx, user, userAgent, ipAddress)
+	if err != nil {
+		return nil, err
+	}
+	accessToken, accessExp, err := s.generateToken(user)
+	if err != nil {
+		return nil, errs.NewInternalServerError()
+	}
+
+	return &DeviceAuthPollResult{
+		Status: "approved",
+		User:   user,
+		Token: &AuthToken{
+			Token:     accessToken,
+			ExpiresAt: accessExp,
+		},
+		RefreshToken: &AuthToken{
+			Token:     refreshToken,
+			ExpiresAt: refreshExp,
+		},
+	}, nil
+}
+
+func (s *authService) ApproveDeviceAuth(ctx context.Context, userID uuid.UUID, input applicationdto.DeviceAuthApproveInput) error {
+	normalized := input.Normalized()
+	if normalized.UserCode == "" {
+		return errs.NewBadRequestError("userCode is required", true, []errs.FieldError{{Field: "userCode", Error: "is required"}}, nil)
+	}
+
+	now := s.nowUTC()
+	userCodeHash := hashDeviceAuthToken(normalizeUserCode(normalized.UserCode))
+
+	s.deviceAuthMu.Lock()
+	defer s.deviceAuthMu.Unlock()
+	s.cleanupExpiredDeviceAuthLocked(now)
+
+	deviceCodeHash, ok := s.deviceAuthByUser[userCodeHash]
+	if !ok {
+		return errs.NewBadRequestError("invalid_user_code", true, nil, nil)
+	}
+
+	record, ok := s.deviceAuthByCode[deviceCodeHash]
+	if !ok {
+		delete(s.deviceAuthByUser, userCodeHash)
+		return errs.NewBadRequestError("invalid_user_code", true, nil, nil)
+	}
+
+	if record.ConsumedAt != nil {
+		return &errs.ErrorResponse{
+			Message:  "device_code_already_used",
+			Status:   409,
+			Success:  false,
+			Override: true,
+		}
+	}
+
+	if record.ApprovedByUserID != nil {
+		if *record.ApprovedByUserID == userID {
+			return nil
+		}
+		return &errs.ErrorResponse{
+			Message:  "device_code_already_approved",
+			Status:   409,
+			Success:  false,
+			Override: true,
+		}
+	}
+
+	record.ApprovedByUserID = &userID
+	s.deviceAuthByCode[deviceCodeHash] = record
+	return nil
+}
+
 func (s *authService) CurrentUser(ctx context.Context, userID uuid.UUID) (*domain.User, error) {
 	user, err := s.repo.GetByID(ctx, userID)
 	if err != nil {
@@ -666,6 +869,72 @@ func generateRefreshToken() (string, error) {
 func hashRefreshToken(token string) string {
 	sum := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(sum[:])
+}
+
+func hashDeviceAuthToken(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
+}
+
+func normalizeUserCode(value string) string {
+	trimmed := strings.TrimSpace(strings.ToUpper(value))
+	return strings.ReplaceAll(trimmed, "-", "")
+}
+
+func generateDeviceCode() (string, error) {
+	tokenBytes := make([]byte, 32)
+	if _, err := rand.Read(tokenBytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(tokenBytes), nil
+}
+
+func generateUserCode(length int, groupSize int) (string, error) {
+	const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+	if length <= 0 {
+		return "", errors.New("invalid user code length")
+	}
+	if groupSize <= 0 {
+		groupSize = length
+	}
+
+	builder := strings.Builder{}
+	builder.Grow(length + (length-1)/groupSize)
+	for idx := 0; idx < length; idx++ {
+		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(alphabet))))
+		if err != nil {
+			return "", err
+		}
+		if idx > 0 && idx%groupSize == 0 {
+			builder.WriteByte('-')
+		}
+		builder.WriteByte(alphabet[n.Int64()])
+	}
+	return builder.String(), nil
+}
+
+func (s *authService) nowUTC() time.Time {
+	now := time.Now
+	if s.now != nil {
+		now = s.now
+	}
+	return now().UTC()
+}
+
+func (s *authService) cleanupExpiredDeviceAuthLocked(now time.Time) {
+	if len(s.deviceAuthByCode) == 0 {
+		return
+	}
+
+	for codeHash, record := range s.deviceAuthByCode {
+		if !record.ExpiresAt.Before(now) {
+			continue
+		}
+		delete(s.deviceAuthByCode, codeHash)
+		if record.UserCodeHash != "" {
+			delete(s.deviceAuthByUser, record.UserCodeHash)
+		}
+	}
 }
 
 func (s *authService) queueEmailVerification(ctx context.Context, user *domain.User) error {

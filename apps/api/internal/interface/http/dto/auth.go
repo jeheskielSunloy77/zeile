@@ -54,3 +54,47 @@ func (d *VerifyEmailRequest) ToUsecase() dto.VerifyEmailInput {
 		Code:  d.Code,
 	}
 }
+
+type DeviceAuthPollRequest struct {
+	DeviceCode string `json:"deviceCode" validate:"required,min=16,max=256"`
+}
+
+func (d *DeviceAuthPollRequest) Validate() error {
+	return validator.New().Struct(d)
+}
+
+func (d *DeviceAuthPollRequest) ToUsecase() dto.DeviceAuthPollInput {
+	return dto.DeviceAuthPollInput{
+		DeviceCode: d.DeviceCode,
+	}
+}
+
+type DeviceAuthApproveRequest struct {
+	UserCode string `json:"userCode" validate:"required,min=4,max=32"`
+}
+
+func (d *DeviceAuthApproveRequest) Validate() error {
+	return validator.New().Struct(d)
+}
+
+func (d *DeviceAuthApproveRequest) ToUsecase() dto.DeviceAuthApproveInput {
+	return dto.DeviceAuthApproveInput{
+		UserCode: d.UserCode,
+	}
+}
+
+type RefreshRequest struct {
+	RefreshToken *string `json:"refreshToken" validate:"omitempty,min=32,max=256"`
+}
+
+func (d *RefreshRequest) Validate() error {
+	return validator.New().Struct(d)
+}
+
+type LogoutRequest struct {
+	RefreshToken *string `json:"refreshToken" validate:"omitempty,min=32,max=256"`
+}
+
+func (d *LogoutRequest) Validate() error {
+	return validator.New().Struct(d)
+}

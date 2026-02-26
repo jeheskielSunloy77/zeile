@@ -838,3 +838,84 @@ func TestAuthServiceResendVerification_QueuesVerification(t *testing.T) {
 	require.True(t, enqueuer.called)
 	require.Equal(t, job.TaskEmailVerification, enqueuer.task.Type())
 }
+
+// Ensures device flow transitions pending -> approved and returns auth tokens after approval.
+func TestAuthServiceDeviceAuth_StartApprovePollFlow(t *testing.T) {
+	ctx := context.Background()
+	userID := uuid.New()
+
+	repo := &mockAuthRepo{
+		getByIDFn: func(_ context.Context, id uuid.UUID) (*domain.User, error) {
+			require.Equal(t, userID, id)
+			return &domain.User{
+				ID:       userID,
+				Email:    "reader@example.com",
+				Username: "reader",
+			}, nil
+		},
+	}
+
+	sessionRepo := &mockSessionRepo{
+		createFn: func(_ context.Context, session *domain.AuthSession) error {
+			if session.ID == uuid.Nil {
+				session.ID = uuid.New()
+			}
+			require.Equal(t, userID, session.UserID)
+			require.NotEmpty(t, session.RefreshTokenHash)
+			return nil
+		},
+	}
+
+	svc := NewAuthService(&config.AuthConfig{
+		SecretKey:       "device-secret",
+		AccessTokenTTL:  time.Minute,
+		RefreshTokenTTL: 24 * time.Hour,
+	}, repo, sessionRepo, nil, nil, nil)
+
+	start, err := svc.StartDeviceAuth(ctx)
+	require.NoError(t, err)
+	require.NotEmpty(t, start.DeviceCode)
+	require.NotEmpty(t, start.UserCode)
+	require.Equal(t, int(deviceAuthPollInterval.Seconds()), start.IntervalSeconds)
+
+	pending, err := svc.PollDeviceAuth(ctx, applicationdto.DeviceAuthPollInput{DeviceCode: start.DeviceCode}, "tui-agent", "127.0.0.1")
+	require.NoError(t, err)
+	require.Equal(t, "pending", pending.Status)
+
+	err = svc.ApproveDeviceAuth(ctx, userID, applicationdto.DeviceAuthApproveInput{UserCode: start.UserCode})
+	require.NoError(t, err)
+
+	approved, err := svc.PollDeviceAuth(ctx, applicationdto.DeviceAuthPollInput{DeviceCode: start.DeviceCode}, "tui-agent", "127.0.0.1")
+	require.NoError(t, err)
+	require.Equal(t, "approved", approved.Status)
+	require.NotNil(t, approved.User)
+	require.Equal(t, userID, approved.User.ID)
+	require.NotNil(t, approved.Token)
+	require.NotEmpty(t, approved.Token.Token)
+	require.NotNil(t, approved.RefreshToken)
+	require.NotEmpty(t, approved.RefreshToken.Token)
+
+	_, err = svc.PollDeviceAuth(ctx, applicationdto.DeviceAuthPollInput{DeviceCode: start.DeviceCode}, "tui-agent", "127.0.0.1")
+	require.Error(t, err)
+	var errResp *errs.ErrorResponse
+	require.ErrorAs(t, err, &errResp)
+	require.Equal(t, http.StatusConflict, errResp.Status)
+	require.Equal(t, "device_code_already_used", errResp.Message)
+}
+
+// Ensures approval returns validation errors for unknown user codes.
+func TestAuthServiceDeviceAuthApprove_InvalidCode(t *testing.T) {
+	ctx := context.Background()
+	svc := NewAuthService(&config.AuthConfig{
+		SecretKey:       "device-secret",
+		AccessTokenTTL:  time.Minute,
+		RefreshTokenTTL: 24 * time.Hour,
+	}, &mockAuthRepo{}, &mockSessionRepo{}, nil, nil, nil)
+
+	err := svc.ApproveDeviceAuth(ctx, uuid.New(), applicationdto.DeviceAuthApproveInput{UserCode: "ZZZZ-9999"})
+	require.Error(t, err)
+	var errResp *errs.ErrorResponse
+	require.ErrorAs(t, err, &errResp)
+	require.Equal(t, http.StatusBadRequest, errResp.Status)
+	require.Equal(t, "invalid_user_code", errResp.Message)
+}

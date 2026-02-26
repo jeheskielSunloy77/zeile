@@ -28,11 +28,15 @@ func registerRoutes(
 	authGroup.Get("/google", h.Auth.GoogleLogin())
 	authGroup.Get("/google/callback", h.Auth.GoogleCallback())
 	authGroup.Post("/verify-email", h.Auth.VerifyEmail())
+	authGroup.Get("/device", h.Auth.DeviceApprovePage())
+	authGroup.Post("/device/start", h.Auth.DeviceStart())
+	authGroup.Post("/device/poll", h.Auth.DevicePoll())
 	authGroup.Post("/refresh", h.Auth.Refresh())
 	authGroup.Post("/logout", h.Auth.Logout())
 
 	authProtected := authGroup.Group("", middlewares.Auth.RequireAuth())
 	authProtected.Get("/me", h.Auth.Me())
+	authProtected.Post("/device/approve", h.Auth.DeviceApprove())
 	authProtected.Post("/resend-verification", h.Auth.ResendVerification())
 	authProtected.Post("/logout-all", h.Auth.LogoutAll())
 
