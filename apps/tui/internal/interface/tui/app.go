@@ -134,6 +134,11 @@ type model struct {
 	statusKind  statusVariant
 	statusSetAt time.Time
 
+	connectionLabel string
+	deviceAuth      *deviceAuthState
+	syncing         bool
+	syncInterval    time.Duration
+
 	prompt *promptState
 
 	libraryBooks     []domain.Book
@@ -188,11 +193,16 @@ func New(container *application.Container) tea.Model {
 		addSourceMethod: addSourcePath,
 		libraryProgress: map[string]float64{},
 		libraryFinished: map[string]bool{},
+		connectionLabel: "Local-only",
+		syncInterval:    2 * time.Minute,
 	}
 
 	if container != nil {
 		container.Config = container.Config.Normalized()
 		m.addManagedCopy = container.Config.ManagedCopyDefault
+		if container.Auth != nil {
+			m.connectionLabel = container.Auth.ConnectionLabel()
+		}
 	}
 
 	cwd, err := os.Getwd()
@@ -264,6 +274,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.setStatusDestructive(fmt.Sprintf("Failed to auto-resume: %v", err))
 			}
 		}
+		if m.shouldRunSync() {
+			return m, waitSyncTick(m.syncInterval)
+		}
 		return m, nil
 
 	case importProgressMsg:
@@ -318,6 +331,109 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case syncTickMsg:
+		if !m.shouldRunSync() {
+			return m, nil
+		}
+		if m.syncing {
+			return m, waitSyncTick(m.syncInterval)
+		}
+		m.syncing = true
+		return m, tea.Batch(
+			m.syncNowCmd(false),
+			waitSyncTick(m.syncInterval),
+		)
+
+	case syncDoneMsg:
+		m.syncing = false
+		if msg.err != nil {
+			if msg.triggeredByUser {
+				m.setStatusDestructive(fmt.Sprintf("Sync failed: %v", msg.err))
+			}
+			return m, nil
+		}
+
+		if msg.triggeredByUser {
+			m.setStatusSuccess(fmt.Sprintf(
+				"Synced %d books, %d states (%d already linked)",
+				msg.result.SyncedBooks,
+				msg.result.SyncedStates,
+				msg.result.SkippedBooks,
+			))
+		}
+		return m, nil
+
+	case deviceAuthStartMsg:
+		if msg.err != nil {
+			m.deviceAuth = nil
+			m.setStatusDestructive(fmt.Sprintf("Connect failed: %v", msg.err))
+			return m, nil
+		}
+		interval := time.Duration(msg.start.IntervalSeconds) * time.Second
+		if interval <= 0 {
+			interval = 5 * time.Second
+		}
+		m.deviceAuth = &deviceAuthState{
+			DeviceCode:      msg.start.DeviceCode,
+			UserCode:        msg.start.UserCode,
+			VerificationURI: msg.start.VerificationURI,
+			ExpiresAt:       msg.start.ExpiresAt,
+			Interval:        interval,
+		}
+		m.setStatusDefault("Waiting for browser approval")
+		return m, waitDeviceAuthPoll(interval)
+
+	case deviceAuthPollTickMsg:
+		if m.deviceAuth == nil {
+			return m, nil
+		}
+		return m, m.pollDeviceAuthCmd()
+
+	case deviceAuthPollMsg:
+		if m.deviceAuth == nil {
+			return m, nil
+		}
+		if msg.err != nil {
+			m.deviceAuth = nil
+			m.setStatusDestructive(fmt.Sprintf("Device auth failed: %v", msg.err))
+			return m, nil
+		}
+		if msg.result.Status == "approved" {
+			m.deviceAuth = nil
+			if m.container != nil && m.container.Auth != nil {
+				m.connectionLabel = m.container.Auth.ConnectionLabel()
+			} else {
+				m.connectionLabel = "Connected"
+			}
+			m.setStatusSuccess("Connected successfully")
+			if m.shouldRunSync() {
+				m.syncing = true
+				return m, tea.Batch(
+					m.syncNowCmd(true),
+					waitSyncTick(m.syncInterval),
+				)
+			}
+			return m, nil
+		}
+
+		if time.Now().UTC().After(m.deviceAuth.ExpiresAt) {
+			m.deviceAuth = nil
+			m.setStatusDestructive("Device code expired")
+			return m, nil
+		}
+		return m, waitDeviceAuthPoll(m.deviceAuth.Interval)
+
+	case authDisconnectedMsg:
+		if msg.err != nil {
+			m.setStatusDestructive(fmt.Sprintf("Disconnect failed: %v", msg.err))
+			return m, nil
+		}
+		m.connectionLabel = "Local-only"
+		m.deviceAuth = nil
+		m.syncing = false
+		m.setStatusSuccess("Disconnected")
+		return m, nil
+
 	case tea.QuitMsg:
 		if m.currentView == viewReader {
 			if err := m.saveReaderState(); err != nil {
@@ -330,6 +446,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		if msg.String() == "ctrl+c" {
 			return m, m.requestQuitCmd()
+		}
+
+		if m.deviceAuth != nil {
+			switch msg.String() {
+			case "esc", "q":
+				m.deviceAuth = nil
+				m.setStatusDefault("Device auth canceled")
+			}
+			return m, nil
 		}
 
 		if m.remove != nil {
@@ -539,6 +664,10 @@ func (m model) View() string {
 		return m.renderRemoveModal()
 	}
 
+	if m.deviceAuth != nil {
+		return m.renderDeviceAuthModal()
+	}
+
 	return body
 }
 
@@ -625,4 +754,11 @@ func (m model) effectiveStatus(now time.Time, fallback string) (string, statusVa
 		kind = statusDefault
 	}
 	return text, kind, true
+}
+
+func (m model) shouldRunSync() bool {
+	if m.container == nil || m.container.Auth == nil || m.container.Sync == nil {
+		return false
+	}
+	return m.container.Auth.IsConnected()
 }

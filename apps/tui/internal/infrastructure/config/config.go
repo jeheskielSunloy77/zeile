@@ -30,6 +30,7 @@ const (
 
 type Config struct {
 	DataDir            string `toml:"data_dir"`
+	APIBaseURL         string `toml:"api_base_url"`
 	ManagedCopyDefault bool   `toml:"managed_copy_default"`
 
 	// Deprecated alias preserved for backward compatibility.
@@ -108,6 +109,7 @@ func Save(path string, cfg Config) error {
 }
 
 func MergeSettings(base, imported Config) Config {
+	base.APIBaseURL = imported.APIBaseURL
 	base.ManagedCopyDefault = imported.ManagedCopyDefault
 	base.ThemePack = imported.ThemePack
 	base.PrimaryOverrideEnabled = imported.PrimaryOverrideEnabled
@@ -131,6 +133,10 @@ func (cfg Config) Normalized() Config {
 
 	if strings.TrimSpace(cfg.DataDir) == "" {
 		cfg.DataDir = d.DataDir
+	}
+
+	if strings.TrimSpace(cfg.APIBaseURL) == "" {
+		cfg.APIBaseURL = d.APIBaseURL
 	}
 
 	if cfg.SpreadThreshold <= 0 {
@@ -194,6 +200,7 @@ func Default() Config {
 
 	return Config{
 		DataDir:              filepath.Join(homeDir, ".zeile"),
+		APIBaseURL:           "http://localhost:8080",
 		ManagedCopyDefault:   true,
 		MinSpreadWidth:       120,
 		ThemePack:            ThemePackDefault,

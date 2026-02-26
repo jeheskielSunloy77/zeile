@@ -23,3 +23,12 @@ type ReadingStateRepository interface {
 	SetFinishedForBook(ctx context.Context, bookID string, isFinished bool, updatedAt time.Time) error
 	MostRecentUnfinishedBookID(ctx context.Context) (string, error)
 }
+
+type SyncAccountRepository interface {
+	Upsert(ctx context.Context, account domain.SyncAccount) error
+}
+
+type SyncBookLinkRepository interface {
+	GetByLocalBookID(ctx context.Context, localBookID string) (domain.SyncBookLink, error)
+	UpsertBookLink(ctx context.Context, link domain.SyncBookLink) error
+}

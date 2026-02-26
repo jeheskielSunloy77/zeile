@@ -9,6 +9,7 @@ import (
 func TestConfigNormalizedClampsAndDefaults(t *testing.T) {
 	cfg := Config{
 		DataDir:              "",
+		APIBaseURL:           "",
 		ThemePack:            "unknown",
 		KeyHintsDensity:      "LOUD",
 		StartupMode:          "else",
@@ -27,6 +28,9 @@ func TestConfigNormalizedClampsAndDefaults(t *testing.T) {
 
 	if n.DataDir == "" {
 		t.Fatalf("expected data dir default")
+	}
+	if n.APIBaseURL == "" {
+		t.Fatalf("expected API base URL default")
 	}
 	if n.ThemePack != d.ThemePack {
 		t.Fatalf("expected theme fallback %q, got %q", d.ThemePack, n.ThemePack)
@@ -69,6 +73,7 @@ func TestSaveAndLoadFileRoundTrip(t *testing.T) {
 
 	cfg := Default()
 	cfg.DataDir = filepath.Join(dir, "data")
+	cfg.APIBaseURL = "http://localhost:9090"
 	cfg.ThemePack = ThemePackNord
 	cfg.KeyHintsDensity = KeyHintsDensityCompact
 	cfg.StartupMode = StartupModeLibrary
@@ -94,6 +99,9 @@ func TestSaveAndLoadFileRoundTrip(t *testing.T) {
 
 	if loaded.ThemePack != ThemePackNord {
 		t.Fatalf("expected theme pack nord, got %q", loaded.ThemePack)
+	}
+	if loaded.APIBaseURL != "http://localhost:9090" {
+		t.Fatalf("expected API base URL round-trip, got %q", loaded.APIBaseURL)
 	}
 	if loaded.KeyHintsDensity != KeyHintsDensityCompact {
 		t.Fatalf("expected compact hints, got %q", loaded.KeyHintsDensity)
@@ -124,10 +132,12 @@ func TestSaveAndLoadFileRoundTrip(t *testing.T) {
 func TestMergeSettingsKeepsBaseDataDir(t *testing.T) {
 	base := Default()
 	base.DataDir = "/base"
+	base.APIBaseURL = "http://localhost:8080"
 	base.ThemePack = ThemePackDefault
 
 	imported := Default()
 	imported.DataDir = "/imported"
+	imported.APIBaseURL = "http://localhost:7070"
 	imported.ThemePack = ThemePackDracula
 	imported.StartupMode = StartupModeLibrary
 
@@ -137,6 +147,9 @@ func TestMergeSettingsKeepsBaseDataDir(t *testing.T) {
 	}
 	if merged.ThemePack != ThemePackDracula {
 		t.Fatalf("expected imported theme pack, got %q", merged.ThemePack)
+	}
+	if merged.APIBaseURL != "http://localhost:7070" {
+		t.Fatalf("expected imported API base URL, got %q", merged.APIBaseURL)
 	}
 	if merged.StartupMode != StartupModeLibrary {
 		t.Fatalf("expected imported startup mode, got %q", merged.StartupMode)

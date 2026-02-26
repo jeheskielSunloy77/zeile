@@ -18,6 +18,14 @@ type footerHint struct {
 func (m model) renderLibrary() string {
 	header := lipgloss.NewStyle().Bold(true).Render("Zeile - Library")
 	subheader := fmt.Sprintf("Books: %d", len(m.libraryBooks))
+	connection := strings.TrimSpace(m.connectionLabel)
+	if connection == "" {
+		connection = "Local-only"
+	}
+	if m.syncing {
+		connection += " (syncing)"
+	}
+	subheader += " | " + connection
 	if query := strings.TrimSpace(m.libraryQuery); query != "" {
 		subheader += fmt.Sprintf(" | Search: %s", query)
 	}
@@ -77,6 +85,9 @@ func (m model) renderLibrary() string {
 	hints := m.renderFooterHints([]footerHint{
 		{key: "/", action: "search"},
 		{key: "a", action: "add"},
+		{key: "c", action: "connect"},
+		{key: "x", action: "disconnect"},
+		{key: "y", action: "sync now"},
 		{key: "s", action: "settings"},
 		{key: "Enter", action: "open"},
 		{key: "r", action: "remove"},
@@ -673,6 +684,36 @@ func (m model) renderRemoveModal() string {
 	}
 
 	content := strings.Join(contentLines, "\n")
+
+	style := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(1, 2)
+	return m.renderCenteredContent(style.Render(content))
+}
+
+func (m model) renderDeviceAuthModal() string {
+	if m.deviceAuth == nil {
+		return ""
+	}
+
+	expiresIn := time.Until(m.deviceAuth.ExpiresAt).Round(time.Second)
+	if expiresIn < 0 {
+		expiresIn = 0
+	}
+
+	content := strings.Join([]string{
+		lipgloss.NewStyle().Bold(true).Render("Connect to Zeile Cloud"),
+		"",
+		"1. Open this URL in your browser:",
+		m.deviceAuth.VerificationURI,
+		"",
+		"2. Enter this code:",
+		lipgloss.NewStyle().Bold(true).Render(m.deviceAuth.UserCode),
+		"",
+		fmt.Sprintf("Polling every %s. Expires in %s.", m.deviceAuth.Interval, expiresIn),
+		"",
+		m.renderFooterHints([]footerHint{
+			{key: "Esc", action: "cancel"},
+		}),
+	}, "\n")
 
 	style := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(1, 2)
 	return m.renderCenteredContent(style.Render(content))

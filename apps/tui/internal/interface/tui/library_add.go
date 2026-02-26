@@ -29,6 +29,21 @@ func (m *model) handleLibraryKey(msg tea.KeyMsg) tea.Cmd {
 	case "a":
 		m.startAddFlow()
 		m.clearStatus()
+	case "c":
+		return m.startDeviceAuthCmd()
+	case "x":
+		return m.disconnectCmd()
+	case "y":
+		if !m.shouldRunSync() {
+			m.setStatusDefault("Connect first to run sync")
+			return nil
+		}
+		if m.syncing {
+			m.setStatusDefault("Sync already in progress")
+			return nil
+		}
+		m.syncing = true
+		return m.syncNowCmd(true)
 	case "s":
 		m.openSettings(viewLibrary)
 	case "enter":
@@ -45,7 +60,7 @@ func (m *model) handleLibraryKey(msg tea.KeyMsg) tea.Cmd {
 			m.openRemoveModal(book)
 		}
 	case "?":
-		m.setStatusDefault("Library: / search  a add  s settings  Enter open  r remove  q quit")
+		m.setStatusDefault("Library: / search  a add  c connect  x disconnect  y sync  s settings  Enter open  r remove  q quit")
 	}
 	return nil
 }

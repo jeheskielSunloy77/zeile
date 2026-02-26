@@ -9,6 +9,7 @@ import (
 	"github.com/zeile/tui/internal/infrastructure/config"
 	"github.com/zeile/tui/internal/infrastructure/database"
 	"github.com/zeile/tui/internal/infrastructure/preprocess"
+	"github.com/zeile/tui/internal/infrastructure/remote"
 	"github.com/zeile/tui/internal/infrastructure/repository"
 	"github.com/zeile/tui/internal/infrastructure/storage"
 	"github.com/zeile/tui/internal/preprocessing"
@@ -18,6 +19,8 @@ type Container struct {
 	Config  config.Config
 	Paths   storage.Paths
 	DB      *sql.DB
+	Auth    *AuthService
+	Sync    *SyncService
 	Library *LibraryService
 	Reader  *ReaderService
 }
@@ -52,11 +55,26 @@ func NewContainer(ctx context.Context) (*Container, error) {
 
 	library := NewLibraryService(bookRepo, stateRepo, processorRegistry, paths)
 	readerService := NewReaderService(bookRepo, stateRepo, paths)
+	authService, err := NewAuthService(loadedConfig.Config, paths)
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
+	syncRepo := repository.NewSyncRepository(db)
+	syncService := NewSyncService(
+		authService,
+		library,
+		syncRepo,
+		syncRepo,
+		remote.NewClient(loadedConfig.Config.APIBaseURL),
+	)
 
 	return &Container{
 		Config:  loadedConfig.Config,
 		Paths:   paths,
 		DB:      db,
+		Auth:    authService,
+		Sync:    syncService,
 		Library: library,
 		Reader:  readerService,
 	}, nil

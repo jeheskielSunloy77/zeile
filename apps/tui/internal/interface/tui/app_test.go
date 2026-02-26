@@ -168,6 +168,22 @@ func TestLibraryDeleteShortcutIsDisabled(t *testing.T) {
 	}
 }
 
+func TestManualSyncRequiresConnection(t *testing.T) {
+	container := newTestContainer(t)
+	seedBookWithEPUBCache(t, container, "needs-connect", "")
+
+	m := New(container).(model)
+	m.startupCompleted = true
+	if err := m.refreshLibrary(); err != nil {
+		t.Fatalf("refresh library: %v", err)
+	}
+
+	_ = m.handleLibraryKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("y")})
+	if !strings.Contains(m.statusText, "Connect first to run sync") {
+		t.Fatalf("expected connect warning, got %q", m.statusText)
+	}
+}
+
 func TestAddFlowStartsFileSelectorAtHomeDirectory(t *testing.T) {
 	home, err := os.UserHomeDir()
 	if err != nil || strings.TrimSpace(home) == "" {
