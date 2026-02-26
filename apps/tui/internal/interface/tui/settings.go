@@ -39,7 +39,7 @@ func (m *model) openSettings(from viewID) {
 
 func (m *model) closeSettings() {
 	target := m.settingsReturnView
-	if target != viewReader && target != viewLibrary && target != viewAdd && target != viewCommunities {
+	if target != viewReader && target != viewLibrary && target != viewAdd && target != viewCommunities && target != viewAccount {
 		target = viewLibrary
 	}
 	m.currentView = target

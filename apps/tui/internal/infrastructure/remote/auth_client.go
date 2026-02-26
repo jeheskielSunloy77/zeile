@@ -106,6 +106,19 @@ func (c *Client) Me(ctx context.Context, accessToken string) (User, error) {
 	return respBody, err
 }
 
+func (c *Client) UpdateUser(ctx context.Context, accessToken, userID, username string) (User, error) {
+	reqBody := struct {
+		Username string `json:"username"`
+	}{
+		Username: strings.TrimSpace(username),
+	}
+
+	respBody := User{}
+	path := fmt.Sprintf("/api/v1/users/%s", strings.TrimSpace(userID))
+	err := c.doJSON(ctx, http.MethodPatch, path, reqBody, strings.TrimSpace(accessToken), &respBody)
+	return respBody, err
+}
+
 func (c *Client) doJSON(ctx context.Context, method, path string, reqBody any, bearerToken string, out any) error {
 	if !c.Enabled() {
 		return &APIError{
@@ -179,4 +192,3 @@ func parseAPIError(status int, payload []byte) error {
 	}
 	return &APIError{Message: decoded.Message, Status: status}
 }
-

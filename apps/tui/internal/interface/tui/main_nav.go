@@ -4,6 +4,7 @@ var mainNavViews = []viewID{
 	viewLibrary,
 	viewCommunities,
 	viewSettings,
+	viewAccount,
 }
 
 func (m model) isMainNavView(view viewID) bool {

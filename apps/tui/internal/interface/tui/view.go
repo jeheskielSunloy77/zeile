@@ -17,7 +17,12 @@ type footerHint struct {
 
 func (m model) renderMainNavHeader(active viewID) string {
 	theme := m.activeTheme()
-	brand := lipgloss.NewStyle().Bold(true).Render("Zeile")
+	brand := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("255")).
+		Background(theme.Primary).
+		Padding(0, 1).
+		Render("Zeile")
 
 	entries := []struct {
 		view  viewID
@@ -26,6 +31,7 @@ func (m model) renderMainNavHeader(active viewID) string {
 		{view: viewLibrary, label: "Library"},
 		{view: viewCommunities, label: "Communities"},
 		{view: viewSettings, label: "Settings"},
+		{view: viewAccount, label: m.accountNavLabel()},
 	}
 
 	items := make([]string, 0, len(entries))
@@ -36,26 +42,25 @@ func (m model) renderMainNavHeader(active viewID) string {
 		}
 		items = append(items, style.Render(entry.label))
 	}
+	nav := strings.Join(items, "  ")
+	layoutWidth := m.mainLayoutWidth()
+	if layoutWidth <= 0 {
+		return brand + strings.Repeat(" ", 3) + nav
+	}
 
-	return brand + strings.Repeat(" ", 3) + strings.Join(items, "  ")
+	gap := layoutWidth - lipgloss.Width(brand) - lipgloss.Width(nav)
+	if gap < 1 {
+		gap = 1
+	}
+	return brand + strings.Repeat(" ", gap) + nav
 }
 
 func (m model) renderLibrary() string {
 	header := m.renderMainNavHeader(viewLibrary)
-	subheader := fmt.Sprintf("Books: %d", len(m.libraryBooks))
-	connection := strings.TrimSpace(m.connectionLabel)
-	if connection == "" {
-		connection = "Local-only"
-	}
-	if m.syncing {
-		connection += " (syncing)"
-	}
-	subheader += " | " + connection
+	headerLines := []string{header, ""}
 	if query := strings.TrimSpace(m.libraryQuery); query != "" {
-		subheader += fmt.Sprintf(" | Search: %s", query)
+		headerLines = []string{header, fmt.Sprintf("Search: %s", query), ""}
 	}
-
-	headerLines := []string{header, subheader, ""}
 	emptyMessage := "No books yet. Press 'a' to import EPUB/PDF."
 	theme := m.activeTheme()
 
@@ -80,6 +85,7 @@ func (m model) renderLibrary() string {
 			body = emptyMessage
 		}
 	} else {
+		bodyLines := make([]string, 0, len(m.libraryBooks))
 		for idx, book := range m.libraryBooks {
 			marker := " "
 			if idx == m.librarySelected {
@@ -104,7 +110,36 @@ func (m model) renderLibrary() string {
 			}
 			rows = append(rows, row)
 		}
-		body = strings.Join(rows, "\n")
+		if m.width > 0 {
+			bodyWidth := m.bodyContentWidth()
+			if bodyWidth < 1 {
+				bodyWidth = 1
+			}
+			for _, row := range rows {
+				bodyLines = append(bodyLines, lipgloss.PlaceHorizontal(bodyWidth, lipgloss.Center, row))
+			}
+		} else {
+			bodyLines = append(bodyLines, rows...)
+		}
+		if m.width > 0 && m.height > 0 {
+			contentHeight := m.mainLayoutHeight() - len(headerLines) - 2
+			if contentHeight < 1 {
+				contentHeight = 1
+			}
+			if len(bodyLines) < contentHeight {
+				topPad := (contentHeight - len(bodyLines)) / 2
+				padded := make([]string, 0, contentHeight)
+				for i := 0; i < topPad; i++ {
+					padded = append(padded, "")
+				}
+				padded = append(padded, bodyLines...)
+				for len(padded) < contentHeight {
+					padded = append(padded, "")
+				}
+				bodyLines = padded
+			}
+		}
+		body = strings.Join(bodyLines, "\n")
 	}
 
 	hints := m.renderFooterHints([]footerHint{
@@ -112,13 +147,8 @@ func (m model) renderLibrary() string {
 		{key: "Shift+Tab", action: "prev view"},
 		{key: "/", action: "search"},
 		{key: "a", action: "add"},
-		{key: "c", action: "connect"},
-		{key: "x", action: "disconnect"},
-		{key: "y", action: "sync now"},
-		{key: "s", action: "settings"},
 		{key: "Enter", action: "open"},
 		{key: "r", action: "remove"},
-		{key: "q", action: "quit"},
 	})
 	status := m.renderStatusToast("Ready")
 
@@ -132,7 +162,6 @@ func (m model) renderLibrary() string {
 func (m model) renderCommunities() string {
 	headerLines := []string{
 		m.renderMainNavHeader(viewCommunities),
-		"Communities",
 		"",
 	}
 
@@ -155,8 +184,6 @@ func (m model) renderCommunities() string {
 	hints := m.renderFooterHints([]footerHint{
 		{key: "Tab", action: "next view"},
 		{key: "Shift+Tab", action: "prev view"},
-		{key: "s", action: "settings"},
-		{key: "q", action: "quit"},
 	})
 	status := m.renderStatusToast("Ready")
 
@@ -681,6 +708,45 @@ func (m model) renderPromptModal() string {
 		return content
 	}
 	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, content)
+}
+
+func (m model) renderProfileEditorModal() string {
+	if m.profileEditor == nil {
+		return ""
+	}
+
+	value := m.profileEditor.Username
+	if strings.TrimSpace(value) == "" {
+		value = "username"
+	}
+
+	hints := m.renderFooterHints([]footerHint{
+		{key: "Enter", action: "save"},
+		{key: "Esc", action: "cancel"},
+	})
+	if m.profileEditor.Saving {
+		hints = m.renderFooterHints([]footerHint{
+			{key: "Saving", action: "please wait"},
+		})
+	}
+
+	contentLines := []string{
+		lipgloss.NewStyle().Bold(true).Render("Edit Profile"),
+		"",
+		"Update your username.",
+		"Must be between 3 and 50 characters.",
+		"",
+		"Username",
+		"> " + value,
+	}
+	if m.profileEditor.Saving {
+		contentLines = append(contentLines, "", "Saving...")
+	}
+	contentLines = append(contentLines, "", hints)
+
+	content := strings.Join(contentLines, "\n")
+	style := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(1, 2)
+	return m.renderCenteredContent(style.Render(content))
 }
 
 func (m model) renderRemoveModal() string {

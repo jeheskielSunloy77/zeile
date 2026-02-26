@@ -28,6 +28,7 @@ const (
 	viewAdd
 	viewReader
 	viewSettings
+	viewAccount
 )
 
 type addStep int
@@ -137,6 +138,7 @@ type model struct {
 
 	connectionLabel string
 	deviceAuth      *deviceAuthState
+	profileEditor   *profileEditorState
 	syncing         bool
 	syncInterval    time.Duration
 
@@ -183,6 +185,8 @@ type model struct {
 	settingsSection    settingsSectionID
 	settingsField      int
 	settingsSaveSeq    int
+
+	accountField int
 }
 
 func New(container *application.Container) tea.Model {
@@ -435,6 +439,29 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.setStatusSuccess("Disconnected")
 		return m, nil
 
+	case profileUsernameUpdatedMsg:
+		if m.profileEditor != nil {
+			m.profileEditor.Saving = false
+		}
+
+		if msg.err != nil {
+			m.setStatusDestructive(fmt.Sprintf("Profile update failed: %v", msg.err))
+			return m, nil
+		}
+
+		if m.container != nil && m.container.Auth != nil {
+			m.connectionLabel = m.container.Auth.ConnectionLabel()
+		} else {
+			username := strings.TrimSpace(msg.username)
+			if username != "" {
+				m.connectionLabel = "Connected: @" + username
+			}
+		}
+
+		m.closeProfileEditor()
+		m.setStatusSuccess("Username updated")
+		return m, nil
+
 	case tea.QuitMsg:
 		if m.currentView == viewReader {
 			if err := m.saveReaderState(); err != nil {
@@ -456,6 +483,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.setStatusDefault("Device auth canceled")
 			}
 			return m, nil
+		}
+
+		if m.profileEditor != nil {
+			return m, m.handleProfileEditorKey(msg)
 		}
 
 		if m.remove != nil {
@@ -493,6 +524,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.handleReaderKey(msg)
 		case viewSettings:
 			return m, m.handleSettingsKey(msg)
+		case viewAccount:
+			return m, m.handleAccountKey(msg)
 		}
 	}
 
@@ -669,6 +702,8 @@ func (m model) View() string {
 		body = m.renderReader()
 	case viewSettings:
 		body = m.renderSettings()
+	case viewAccount:
+		body = m.renderAccount()
 	default:
 		body = "Unknown view"
 	}
@@ -683,6 +718,10 @@ func (m model) View() string {
 
 	if m.deviceAuth != nil {
 		return m.renderDeviceAuthModal()
+	}
+
+	if m.profileEditor != nil {
+		return m.renderProfileEditorModal()
 	}
 
 	return body

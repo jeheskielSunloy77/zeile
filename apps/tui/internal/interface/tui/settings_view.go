@@ -16,7 +16,6 @@ type settingsFieldView struct {
 
 func (m model) renderSettings() string {
 	header := m.renderMainNavHeader(viewSettings)
-	subheader := "Global settings (live apply, auto-save)"
 
 	bodyWidth := m.bodyContentWidth()
 	if bodyWidth <= 0 {
@@ -35,7 +34,7 @@ func (m model) renderSettings() string {
 	})
 	status := m.renderStatusToast("Ready")
 	footerLines := []string{"", m.renderFooterRow(hints, status)}
-	headerLines := []string{header, subheader, ""}
+	headerLines := []string{header, ""}
 
 	body = m.centerBodyVertically(body, len(headerLines), len(footerLines))
 
@@ -75,13 +74,12 @@ func (m model) centerBodyVertically(body string, headerLines, footerLines int) s
 }
 
 func (m model) renderSettingsBody(contentWidth int) string {
-	theme := m.activeTheme()
 	if contentWidth < 56 {
 		contentWidth = 56
 	}
 
-	const paneFrameExtra = 4 // rounded border + horizontal padding(1,1)
-	const joinExtra = 3      // " " + "│" + " "
+	const paneFrameExtra = 2 // horizontal padding(1,1)
+	const joinExtra = 1      // single space between panes
 	leftWidth := 22
 	if contentWidth < 80 {
 		leftWidth = 18
@@ -98,8 +96,7 @@ func (m model) renderSettingsBody(contentWidth int) string {
 	leftPane := m.renderSettingsSectionList(leftWidth)
 	rightPane := m.renderSettingsFields(rightWidth)
 
-	separator := lipgloss.NewStyle().Foreground(theme.Divider).Render("│")
-	return lipgloss.JoinHorizontal(lipgloss.Top, leftPane, " ", separator, " ", rightPane)
+	return lipgloss.JoinHorizontal(lipgloss.Top, leftPane, " ", rightPane)
 }
 
 func (m model) renderSettingsSectionList(width int) string {
@@ -122,6 +119,7 @@ func (m model) renderSettingsSectionList(width int) string {
 		Width(width).
 		Padding(0, 1).
 		Border(lipgloss.RoundedBorder()).
+		BorderForeground(theme.Muted).
 		Render(strings.Join(lines, "\n"))
 }
 
@@ -129,7 +127,7 @@ func (m model) renderSettingsFields(width int) string {
 	theme := m.activeTheme()
 	fields := m.settingsFieldsForSection(m.settingsSection)
 	if len(fields) == 0 {
-		return lipgloss.NewStyle().Width(width).Render("No settings")
+		return lipgloss.NewStyle().Width(width).Padding(1, 1).Render("No settings")
 	}
 
 	if m.settingsField >= len(fields) {
@@ -178,8 +176,7 @@ func (m model) renderSettingsFields(width int) string {
 
 	return lipgloss.NewStyle().
 		Width(width).
-		Padding(0, 1).
-		Border(lipgloss.RoundedBorder()).
+		Padding(1, 1).
 		Render(strings.Join(lines, "\n"))
 }
 

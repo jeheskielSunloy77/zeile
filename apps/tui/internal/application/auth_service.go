@@ -140,3 +140,42 @@ func (s *AuthService) ConnectionLabel() string {
 	}
 	return "Connected"
 }
+
+func (s *AuthService) UpdateUsername(ctx context.Context, username string) (remote.User, error) {
+	if !s.Enabled() {
+		return remote.User{}, fmt.Errorf("remote API is not configured")
+	}
+
+	trimmed := strings.TrimSpace(username)
+	if len(trimmed) < 3 || len(trimmed) > 50 {
+		return remote.User{}, fmt.Errorf("username must be 3-50 characters")
+	}
+
+	session, ok := s.Session()
+	if !ok {
+		return remote.User{}, fmt.Errorf("not connected")
+	}
+	if strings.TrimSpace(session.User.ID) == "" {
+		return remote.User{}, fmt.Errorf("session user is unavailable")
+	}
+	if strings.TrimSpace(session.AccessToken) == "" || !session.AccessExpiresAt.After(time.Now().UTC()) {
+		return remote.User{}, fmt.Errorf("session expired")
+	}
+
+	user, err := s.client.UpdateUser(ctx, session.AccessToken, session.User.ID, trimmed)
+	if err != nil {
+		return remote.User{}, err
+	}
+
+	updatedSession := session
+	updatedSession.User = user
+	if err := s.store.Save(updatedSession); err != nil {
+		return remote.User{}, err
+	}
+
+	s.mu.Lock()
+	s.session = &updatedSession
+	s.mu.Unlock()
+
+	return user, nil
+}
