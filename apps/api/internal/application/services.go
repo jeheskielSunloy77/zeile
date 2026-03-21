@@ -10,9 +10,7 @@ type Services struct {
 	Auth          AuthService
 	User          UserService
 	Library       LibraryService
-	Sharing       SharingService
 	Community     CommunityService
-	Moderation    ModerationService
 	Authorization *AuthorizationService
 	Job           *job.JobService
 }
@@ -24,10 +22,8 @@ func NewServices(s *server.Server, repos *port.Repositories) (*Services, error) 
 	}
 	authService := NewAuthService(&s.Config.Auth, repos.Auth, repos.AuthSession, repos.EmailVerification, enqueuer, s.Logger)
 	userService := NewUserService(repos.User)
-	libraryService := NewLibraryService(repos.Library, repos.Community, s.Storage)
-	sharingService := NewSharingService(repos.Sharing, repos.Library, repos.Community)
-	communityService := NewCommunityService(repos.Community)
-	moderationService := NewModerationService(repos.Moderation, repos.Library)
+	libraryService := NewLibraryService(repos.Library, s.Storage)
+	communityService := NewCommunityService(repos.Library)
 	authorizationService, err := NewAuthorizationService(s.DB.DB, s.Logger)
 	if err != nil {
 		return nil, err
@@ -38,9 +34,7 @@ func NewServices(s *server.Server, repos *port.Repositories) (*Services, error) 
 		Auth:          authService,
 		User:          userService,
 		Library:       libraryService,
-		Sharing:       sharingService,
 		Community:     communityService,
-		Moderation:    moderationService,
 		Authorization: authorizationService,
 	}, nil
 }

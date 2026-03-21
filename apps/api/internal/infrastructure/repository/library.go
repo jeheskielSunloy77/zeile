@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,6 +18,28 @@ type libraryRepository struct {
 	db *gorm.DB
 }
 
+type communityBookRow struct {
+	ID               uuid.UUID
+	CatalogBookID    uuid.UUID
+	PreferredAssetID uuid.UUID
+	OwnerID          uuid.UUID
+	OwnerUsername    string
+	OwnerAvatarURL   *string
+	Title            string
+	Authors          string
+	Identifiers      []byte
+	Language         *string
+	SourceType       string
+	AddedAt          time.Time
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	AssetID          uuid.UUID
+	AssetMimeType    string
+	AssetSizeBytes   int64
+	AssetChecksum    string
+	AssetPublicURL   *string
+}
+
 func NewLibraryRepository(db *gorm.DB) LibraryRepository {
 	return &libraryRepository{db: db}
 }
@@ -27,9 +50,6 @@ func (r *libraryRepository) CreateCatalogBook(ctx context.Context, book *domain.
 	}
 	if len(book.Identifiers) == 0 {
 		book.Identifiers = []byte("{}")
-	}
-	if book.VerificationStatus == "" {
-		book.VerificationStatus = domain.VerificationStatusPending
 	}
 	if book.SourceType == "" {
 		book.SourceType = "user_upload"
@@ -62,17 +82,6 @@ func (r *libraryRepository) GetCatalogBookByID(ctx context.Context, id uuid.UUID
 	return &book, nil
 }
 
-func (r *libraryRepository) UpdateCatalogVerification(ctx context.Context, id uuid.UUID, status string) (*domain.BookCatalog, error) {
-	updates := map[string]any{
-		"verification_status": status,
-		"updated_at":          time.Now().UTC(),
-	}
-	if err := r.db.WithContext(ctx).Model(&domain.BookCatalog{}).Where("id = ?", id).Updates(updates).Error; err != nil {
-		return nil, err
-	}
-	return r.GetCatalogBookByID(ctx, id)
-}
-
 func (r *libraryRepository) CreateBookAsset(ctx context.Context, asset *domain.BookAsset) error {
 	if asset.ID == uuid.Nil {
 		asset.ID = uuid.New()
@@ -98,17 +107,25 @@ func (r *libraryRepository) UpsertUserLibraryBook(ctx context.Context, book *dom
 	if book.State == "" {
 		book.State = domain.UserLibraryBookStateActive
 	}
+
+	query := r.db.WithContext(ctx).
+		Where("user_id = ? AND catalog_book_id = ?", book.UserID, book.CatalogBookID)
+	if book.SourceLibraryBookID == nil {
+		query = query.Where("source_library_book_id IS NULL")
+	} else {
+		query = query.Where("source_library_book_id = ?", *book.SourceLibraryBookID)
+	}
+
 	var existing domain.UserLibraryBook
-	err := r.db.WithContext(ctx).
-		Where("user_id = ? AND catalog_book_id = ?", book.UserID, book.CatalogBookID).
-		First(&existing).Error
+	err := query.First(&existing).Error
 	switch {
 	case err == nil:
 		updates := map[string]any{
-			"preferred_asset_id":    book.PreferredAssetID,
-			"state":                 book.State,
-			"visibility_in_profile": book.VisibilityInProfile,
-			"updated_at":            time.Now().UTC(),
+			"preferred_asset_id":     book.PreferredAssetID,
+			"source_library_book_id": book.SourceLibraryBookID,
+			"state":                  book.State,
+			"is_public":              book.IsPublic,
+			"updated_at":             time.Now().UTC(),
 		}
 		if book.ArchivedAt != nil {
 			updates["archived_at"] = book.ArchivedAt
@@ -130,6 +147,15 @@ func (r *libraryRepository) UpsertUserLibraryBook(ctx context.Context, book *dom
 func (r *libraryRepository) GetUserLibraryBookByID(ctx context.Context, userID, id uuid.UUID) (*domain.UserLibraryBook, error) {
 	var book domain.UserLibraryBook
 	if err := r.db.WithContext(ctx).First(&book, "id = ? AND user_id = ?", id, userID).Error; err != nil {
+		return nil, err
+	}
+	return &book, nil
+}
+
+func (r *libraryRepository) FindUserLibraryBookBySourceID(ctx context.Context, userID, sourceLibraryBookID uuid.UUID) (*domain.UserLibraryBook, error) {
+	var book domain.UserLibraryBook
+	if err := r.db.WithContext(ctx).
+		First(&book, "user_id = ? AND source_library_book_id = ?", userID, sourceLibraryBookID).Error; err != nil {
 		return nil, err
 	}
 	return &book, nil
@@ -171,6 +197,64 @@ func (r *libraryRepository) DeleteUserLibraryBook(ctx context.Context, userID, i
 		return gorm.ErrRecordNotFound
 	}
 	return nil
+}
+
+func (r *libraryRepository) ListPublicCommunityBooks(ctx context.Context, query, ownerUsername string, limit, offset int) ([]domain.CommunityBook, int64, error) {
+	var (
+		rows  []communityBookRow
+		total int64
+	)
+
+	baseQuery := r.communityBooksBaseQuery(ctx)
+	if query = strings.TrimSpace(query); query != "" {
+		search := "%" + query + "%"
+		baseQuery = baseQuery.Where(
+			"bc.title ILIKE ? OR bc.authors ILIKE ? OR u.username ILIKE ?",
+			search,
+			search,
+			search,
+		)
+	}
+	if ownerUsername = strings.TrimSpace(ownerUsername); ownerUsername != "" {
+		baseQuery = baseQuery.Where("LOWER(u.username) = LOWER(?)", ownerUsername)
+	}
+
+	if err := baseQuery.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	result := baseQuery.
+		Select(r.communityBookSelect()).
+		Order("ulb.added_at DESC").
+		Limit(limit).
+		Offset(offset).
+		Scan(&rows)
+	if result.Error != nil {
+		return nil, 0, result.Error
+	}
+
+	books := make([]domain.CommunityBook, 0, len(rows))
+	for _, row := range rows {
+		books = append(books, mapCommunityBookRow(row))
+	}
+	return books, total, nil
+}
+
+func (r *libraryRepository) GetPublicCommunityBookByID(ctx context.Context, id uuid.UUID) (*domain.CommunityBook, error) {
+	var row communityBookRow
+	result := r.communityBooksBaseQuery(ctx).
+		Where("ulb.id = ?", id).
+		Select(r.communityBookSelect()).
+		Limit(1).
+		Scan(&row)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	book := mapCommunityBookRow(row)
+	return &book, nil
 }
 
 func (r *libraryRepository) UpsertReadingState(ctx context.Context, state *domain.ReadingState, expectedVersion *int64) (*domain.ReadingState, error) {
@@ -268,10 +352,12 @@ func (r *libraryRepository) UpdateHighlight(ctx context.Context, userID, id uuid
 }
 
 func (r *libraryRepository) DeleteHighlight(ctx context.Context, userID, id uuid.UUID) error {
-	result := r.db.WithContext(ctx).Model(&domain.Highlight{}).Where("id = ? AND user_id = ?", id, userID).Updates(map[string]any{
+	updates := map[string]any{
 		"is_deleted": true,
+		"deleted_at": time.Now().UTC(),
 		"updated_at": time.Now().UTC(),
-	})
+	}
+	result := r.db.WithContext(ctx).Model(&domain.Highlight{}).Where("id = ? AND user_id = ?", id, userID).Updates(updates)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -282,11 +368,12 @@ func (r *libraryRepository) DeleteHighlight(ctx context.Context, userID, id uuid
 }
 
 func (r *libraryRepository) GetIdempotencyKey(ctx context.Context, userID uuid.UUID, operation, key string) (*domain.IdempotencyKey, error) {
-	var rec domain.IdempotencyKey
-	if err := r.db.WithContext(ctx).First(&rec, "user_id = ? AND operation = ? AND key = ?", userID, operation, key).Error; err != nil {
+	var idempotency domain.IdempotencyKey
+	if err := r.db.WithContext(ctx).
+		First(&idempotency, "user_id = ? AND operation = ? AND key = ?", userID, operation, key).Error; err != nil {
 		return nil, err
 	}
-	return &rec, nil
+	return &idempotency, nil
 }
 
 func (r *libraryRepository) CreateIdempotencyKey(ctx context.Context, idempotency *domain.IdempotencyKey) error {
@@ -297,4 +384,68 @@ func (r *libraryRepository) CreateIdempotencyKey(ctx context.Context, idempotenc
 		idempotency.ResponseJSON = []byte("{}")
 	}
 	return r.db.WithContext(ctx).Create(idempotency).Error
+}
+
+func (r *libraryRepository) communityBooksBaseQuery(ctx context.Context) *gorm.DB {
+	return r.db.WithContext(ctx).
+		Table("user_library_books AS ulb").
+		Joins("JOIN users AS u ON u.id = ulb.user_id AND u.deleted_at IS NULL").
+		Joins("JOIN books_catalog AS bc ON bc.id = ulb.catalog_book_id AND bc.deleted_at IS NULL").
+		Joins("JOIN book_assets AS ba ON ba.id = ulb.preferred_asset_id AND ba.deleted_at IS NULL").
+		Where("ulb.deleted_at IS NULL").
+		Where("ulb.is_public = ?", true).
+		Where("ulb.preferred_asset_id IS NOT NULL").
+		Where("ulb.state = ?", domain.UserLibraryBookStateActive)
+}
+
+func (r *libraryRepository) communityBookSelect() string {
+	return strings.Join([]string{
+		"ulb.id AS id",
+		"ulb.catalog_book_id AS catalog_book_id",
+		"ulb.preferred_asset_id AS preferred_asset_id",
+		"u.id AS owner_id",
+		"u.username AS owner_username",
+		"u.avatar_url AS owner_avatar_url",
+		"bc.title AS title",
+		"bc.authors AS authors",
+		"bc.identifiers AS identifiers",
+		"bc.language AS language",
+		"bc.source_type AS source_type",
+		"ulb.added_at AS added_at",
+		"ulb.created_at AS created_at",
+		"ulb.updated_at AS updated_at",
+		"ba.id AS asset_id",
+		"ba.mime_type AS asset_mime_type",
+		"ba.size_bytes AS asset_size_bytes",
+		"ba.checksum AS asset_checksum",
+		"ba.public_url AS asset_public_url",
+	}, ", ")
+}
+
+func mapCommunityBookRow(row communityBookRow) domain.CommunityBook {
+	return domain.CommunityBook{
+		ID:               row.ID,
+		CatalogBookID:    row.CatalogBookID,
+		PreferredAssetID: row.PreferredAssetID,
+		Owner: domain.CommunityBookOwner{
+			ID:        row.OwnerID,
+			Username:  row.OwnerUsername,
+			AvatarURL: row.OwnerAvatarURL,
+		},
+		Title:       row.Title,
+		Authors:     row.Authors,
+		Identifiers: row.Identifiers,
+		Language:    row.Language,
+		SourceType:  row.SourceType,
+		AddedAt:     row.AddedAt,
+		CreatedAt:   row.CreatedAt,
+		UpdatedAt:   row.UpdatedAt,
+		PreferredAsset: domain.CommunityBookAsset{
+			ID:        row.AssetID,
+			MimeType:  row.AssetMimeType,
+			SizeBytes: row.AssetSizeBytes,
+			Checksum:  row.AssetChecksum,
+			PublicURL: row.AssetPublicURL,
+		},
+	}
 }

@@ -16,6 +16,7 @@ type User struct {
 
 	Email           string     `json:"email" gorm:"uniqueIndex;not null"`
 	Username        string     `json:"username" gorm:"not null"`
+	AvatarURL       *string    `json:"avatarUrl,omitempty"`
 	PasswordHash    string     `json:"-"`
 	GoogleID        *string    `json:"googleId,omitempty" gorm:"uniqueIndex"`
 	EmailVerifiedAt *time.Time `json:"emailVerifiedAt,omitempty"`

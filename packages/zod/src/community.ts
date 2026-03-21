@@ -1,41 +1,44 @@
 import { z } from 'zod'
-import { ZModel, ZPaginatedResponse } from './utils.js'
-import { ZVisibility } from './library.js'
+import { ZGetManyQuery, ZModel, ZPaginatedResponse } from './utils.js'
+import { ZUserLibraryBook } from './library.js'
 
-export const ZCommunityProfile = z
-	.object({
-		userId: z.string().uuid(),
-		displayName: z.string().max(120).optional(),
-		bio: z.string().max(2000).optional(),
-		avatarUrl: z.string().url().optional(),
-		showReadingActivity: z.boolean(),
-		showHighlights: z.boolean(),
-		showLists: z.boolean(),
-	})
-	.extend(ZModel.omit({ id: true, deletedAt: true }).shape)
-
-export const ZActivityEvent = z.object({
+export const ZCommunityBookOwner = z.object({
 	id: z.string().uuid(),
-	userId: z.string().uuid(),
-	eventType: z.string().min(1),
-	resourceType: z.string().min(1),
-	resourceId: z.string().uuid().optional(),
-	payloadJson: z.record(z.string(), z.any()).default({}),
-	visibility: ZVisibility,
-	createdAt: z.string().datetime(),
-})
-
-export const ZUpdateCommunityProfileDTO = z.object({
-	displayName: z.string().max(120).optional(),
-	bio: z.string().max(2000).optional(),
+	username: z.string().min(3).max(50),
 	avatarUrl: z.string().url().optional(),
-	showReadingActivity: z.boolean().optional(),
-	showHighlights: z.boolean().optional(),
-	showLists: z.boolean().optional(),
 })
 
-export const ZCommunityProfilePathParams = z.object({
-	userId: z.string().uuid(),
+export const ZCommunityBookAsset = z.object({
+	id: z.string().uuid(),
+	mimeType: z.string().min(1),
+	sizeBytes: z.number().nonnegative(),
+	checksum: z.string().min(1),
+	publicUrl: z.string().url().optional(),
 })
 
-export const ZCommunityActivityResponse = ZPaginatedResponse(ZActivityEvent)
+export const ZCommunityBook = z
+	.object({
+		catalogBookId: z.string().uuid(),
+		preferredAssetId: z.string().uuid(),
+		owner: ZCommunityBookOwner,
+		title: z.string().min(1).max(255),
+		authors: z.string(),
+		identifiers: z.record(z.string(), z.string()).default({}),
+		language: z.string().optional(),
+		sourceType: z.string().min(1),
+		addedAt: z.string().datetime(),
+		preferredAsset: ZCommunityBookAsset,
+	})
+	.extend(ZModel.omit({ deletedAt: true }).shape)
+
+export const ZCommunityBookIDParams = z.object({
+	id: z.string().uuid(),
+})
+
+export const ZCommunityBooksQuery = ZGetManyQuery.extend({
+	q: z.string().optional(),
+	ownerUsername: z.string().optional(),
+})
+
+export const ZCommunityBooksResponse = ZPaginatedResponse(ZCommunityBook)
+export const ZCommunitySaveBookResponse = ZUserLibraryBook

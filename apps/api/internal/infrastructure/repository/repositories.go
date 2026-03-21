@@ -15,8 +15,5 @@ func NewRepositories(s *server.Server, cacheClient cache.Cache) *Repositories {
 		User:              NewUserRepository(s.Config, s.DB.DB, cacheClient),
 		EmailVerification: NewEmailVerificationRepository(s.DB.DB),
 		Library:           NewLibraryRepository(s.DB.DB),
-		Sharing:           NewSharingRepository(s.DB.DB),
-		Community:         NewCommunityRepository(s.DB.DB),
-		Moderation:        NewModerationRepository(s.DB.DB),
 	}
 }

@@ -3,86 +3,99 @@ package application
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/jeheskielSunloy77/kern/internal/app/errs"
 	"github.com/jeheskielSunloy77/kern/internal/app/sqlerr"
-	applicationdto "github.com/jeheskielSunloy77/kern/internal/application/dto"
 	"github.com/jeheskielSunloy77/kern/internal/application/port"
 	"github.com/jeheskielSunloy77/kern/internal/domain"
 	"gorm.io/gorm"
 )
 
 type CommunityService interface {
-	GetProfile(ctx context.Context, userID uuid.UUID) (*domain.CommunityProfile, error)
-	UpdateMyProfile(ctx context.Context, userID uuid.UUID, input applicationdto.UpdateCommunityProfileInput) (*domain.CommunityProfile, error)
-	ListActivity(ctx context.Context, userID uuid.UUID, limit, offset int) ([]domain.ActivityEvent, int64, error)
+	ListBooks(ctx context.Context, query, ownerUsername string, limit, offset int) ([]domain.CommunityBook, int64, error)
+	GetBook(ctx context.Context, libraryBookID uuid.UUID) (*domain.CommunityBook, error)
+	SaveBook(ctx context.Context, userID, libraryBookID uuid.UUID) (*domain.UserLibraryBook, error)
 }
 
 type communityService struct {
-	repo port.CommunityRepository
+	repo port.LibraryRepository
 }
 
-func NewCommunityService(repo port.CommunityRepository) CommunityService {
+func NewCommunityService(repo port.LibraryRepository) CommunityService {
 	return &communityService{repo: repo}
 }
 
-func (s *communityService) GetProfile(ctx context.Context, userID uuid.UUID) (*domain.CommunityProfile, error) {
-	profile, err := s.repo.GetProfileByUserID(ctx, userID)
-	if err == nil {
-		return profile, nil
-	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, sqlerr.HandleError(err)
-	}
-	created, createErr := s.repo.UpsertProfile(ctx, &domain.CommunityProfile{
-		UserID:              userID,
-		ShowReadingActivity: true,
-		ShowHighlights:      true,
-		ShowLists:           true,
-	})
-	if createErr != nil {
-		return nil, sqlerr.HandleError(createErr)
-	}
-	return created, nil
-}
-
-func (s *communityService) UpdateMyProfile(ctx context.Context, userID uuid.UUID, input applicationdto.UpdateCommunityProfileInput) (*domain.CommunityProfile, error) {
-	profile, err := s.GetProfile(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	if input.DisplayName != nil {
-		profile.DisplayName = input.DisplayName
-	}
-	if input.Bio != nil {
-		profile.Bio = input.Bio
-	}
-	if input.AvatarURL != nil {
-		profile.AvatarURL = input.AvatarURL
-	}
-	if input.ShowReadingActivity != nil {
-		profile.ShowReadingActivity = *input.ShowReadingActivity
-	}
-	if input.ShowHighlights != nil {
-		profile.ShowHighlights = *input.ShowHighlights
-	}
-	if input.ShowLists != nil {
-		profile.ShowLists = *input.ShowLists
-	}
-
-	updated, err := s.repo.UpsertProfile(ctx, profile)
-	if err != nil {
-		return nil, sqlerr.HandleError(err)
-	}
-	return updated, nil
-}
-
-func (s *communityService) ListActivity(ctx context.Context, userID uuid.UUID, limit, offset int) ([]domain.ActivityEvent, int64, error) {
+func (s *communityService) ListBooks(ctx context.Context, query, ownerUsername string, limit, offset int) ([]domain.CommunityBook, int64, error) {
 	limit, offset = normalizePagination(limit, offset)
-	events, total, err := s.repo.ListActivityEvents(ctx, userID, limit, offset)
+	books, total, err := s.repo.ListPublicCommunityBooks(ctx, query, ownerUsername, limit, offset)
 	if err != nil {
 		return nil, 0, sqlerr.HandleError(err)
 	}
-	return events, total, nil
+	return books, total, nil
+}
+
+func (s *communityService) GetBook(ctx context.Context, libraryBookID uuid.UUID) (*domain.CommunityBook, error) {
+	book, err := s.repo.GetPublicCommunityBookByID(ctx, libraryBookID)
+	if err != nil {
+		return nil, sqlerr.HandleError(err)
+	}
+	return book, nil
+}
+
+func (s *communityService) SaveBook(ctx context.Context, userID, libraryBookID uuid.UUID) (*domain.UserLibraryBook, error) {
+	publicBook, err := s.repo.GetPublicCommunityBookByID(ctx, libraryBookID)
+	if err != nil {
+		return nil, sqlerr.HandleError(err)
+	}
+	if publicBook.Owner.ID == userID {
+		return nil, errs.NewForbiddenError("cannot save your own public book", true)
+	}
+
+	existing, err := s.repo.FindUserLibraryBookBySourceID(ctx, userID, libraryBookID)
+	switch {
+	case err == nil:
+		return existing, nil
+	case !errors.Is(err, gorm.ErrRecordNotFound):
+		return nil, sqlerr.HandleError(err)
+	}
+
+	sourceAsset, err := s.repo.GetBookAssetByID(ctx, publicBook.PreferredAssetID)
+	if err != nil {
+		return nil, sqlerr.HandleError(err)
+	}
+
+	clonedSourceAssetID := sourceAsset.ID
+	clonedAsset := &domain.BookAsset{
+		CatalogBookID:  sourceAsset.CatalogBookID,
+		UploaderUserID: userID,
+		SourceAssetID:  &clonedSourceAssetID,
+		StoragePath:    sourceAsset.StoragePath,
+		PublicURL:      sourceAsset.PublicURL,
+		MimeType:       sourceAsset.MimeType,
+		SizeBytes:      sourceAsset.SizeBytes,
+		Checksum:       sourceAsset.Checksum,
+		IngestStatus:   sourceAsset.IngestStatus,
+	}
+	if err := s.repo.CreateBookAsset(ctx, clonedAsset); err != nil {
+		return nil, sqlerr.HandleError(err)
+	}
+
+	sourceLibraryBookID := libraryBookID
+	clonedAssetID := clonedAsset.ID
+	book, err := s.repo.UpsertUserLibraryBook(ctx, &domain.UserLibraryBook{
+		UserID:              userID,
+		CatalogBookID:       publicBook.CatalogBookID,
+		PreferredAssetID:    &clonedAssetID,
+		SourceLibraryBookID: &sourceLibraryBookID,
+		State:               domain.UserLibraryBookStateActive,
+		IsPublic:            false,
+		AddedAt:             time.Now().UTC(),
+	})
+	if err != nil {
+		return nil, sqlerr.HandleError(err)
+	}
+
+	return book, nil
 }

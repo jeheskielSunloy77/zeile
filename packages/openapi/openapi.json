@@ -303,6 +303,10 @@
                       "minLength": 3,
                       "maxLength": 50
                     },
+                    "avatarUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
                     "googleId": {
                       "type": "string"
                     },
@@ -524,6 +528,10 @@
                       "type": "string",
                       "minLength": 3,
                       "maxLength": 50
+                    },
+                    "avatarUrl": {
+                      "type": "string",
+                      "format": "uri"
                     },
                     "googleId": {
                       "type": "string"
@@ -1019,6 +1027,10 @@
                           "minLength": 3,
                           "maxLength": 50
                         },
+                        "avatarUrl": {
+                          "type": "string",
+                          "format": "uri"
+                        },
                         "googleId": {
                           "type": "string"
                         },
@@ -1466,6 +1478,10 @@
                       "minLength": 3,
                       "maxLength": 50
                     },
+                    "avatarUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
                     "googleId": {
                       "type": "string"
                     },
@@ -1683,6 +1699,10 @@
                       "minLength": 3,
                       "maxLength": 50
                     },
+                    "avatarUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
                     "googleId": {
                       "type": "string"
                     },
@@ -1882,6 +1902,10 @@
                       "type": "string",
                       "minLength": 3,
                       "maxLength": 50
+                    },
+                    "avatarUrl": {
+                      "type": "string",
+                      "format": "uri"
                     },
                     "googleId": {
                       "type": "string"
@@ -2697,6 +2721,10 @@
                             "minLength": 3,
                             "maxLength": 50
                           },
+                          "avatarUrl": {
+                            "type": "string",
+                            "format": "uri"
+                          },
                           "googleId": {
                             "type": "string"
                           },
@@ -2948,6 +2976,10 @@
                           "minLength": 3,
                           "maxLength": 50
                         },
+                        "avatarUrl": {
+                          "type": "string",
+                          "format": "uri"
+                        },
                         "googleId": {
                           "type": "string"
                         },
@@ -3192,6 +3224,10 @@
                           "type": "string",
                           "minLength": 3,
                           "maxLength": 50
+                        },
+                        "avatarUrl": {
+                          "type": "string",
+                          "format": "uri"
                         },
                         "googleId": {
                           "type": "string"
@@ -3453,6 +3489,10 @@
                           "type": "string",
                           "minLength": 3,
                           "maxLength": 50
+                        },
+                        "avatarUrl": {
+                          "type": "string",
+                          "format": "uri"
                         },
                         "googleId": {
                           "type": "string"
@@ -4087,6 +4127,10 @@
                           "minLength": 3,
                           "maxLength": 50
                         },
+                        "avatarUrl": {
+                          "type": "string",
+                          "format": "uri"
+                        },
                         "googleId": {
                           "type": "string"
                         },
@@ -4364,14 +4408,6 @@
                         "language": {
                           "type": "string"
                         },
-                        "verificationStatus": {
-                          "type": "string",
-                          "enum": [
-                            "pending",
-                            "verified_public_domain",
-                            "rejected"
-                          ]
-                        },
                         "sourceType": {
                           "default": "user_upload",
                           "type": "string"
@@ -4395,7 +4431,6 @@
                       },
                       "required": [
                         "title",
-                        "verificationStatus",
                         "id",
                         "createdAt",
                         "updatedAt"
@@ -4672,14 +4707,6 @@
                           "language": {
                             "type": "string"
                           },
-                          "verificationStatus": {
-                            "type": "string",
-                            "enum": [
-                              "pending",
-                              "verified_public_domain",
-                              "rejected"
-                            ]
-                          },
                           "sourceType": {
                             "default": "user_upload",
                             "type": "string"
@@ -4703,7 +4730,6 @@
                         },
                         "required": [
                           "title",
-                          "verificationStatus",
                           "id",
                           "createdAt",
                           "updatedAt"
@@ -4906,6 +4932,10 @@
                       "format": "uuid"
                     },
                     "uploaderUserId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "sourceAssetId": {
                       "type": "string",
                       "format": "uuid"
                     },
@@ -5133,7 +5163,7 @@
                     "type": "string",
                     "format": "uuid"
                   },
-                  "visibilityInProfile": {
+                  "isPublic": {
                     "type": "boolean"
                   }
                 },
@@ -5164,6 +5194,10 @@
                       "type": "string",
                       "format": "uuid"
                     },
+                    "sourceLibraryBookId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
                     "state": {
                       "type": "string",
                       "enum": [
@@ -5171,7 +5205,7 @@
                         "archived"
                       ]
                     },
-                    "visibilityInProfile": {
+                    "isPublic": {
                       "type": "boolean"
                     },
                     "addedAt": {
@@ -5203,7 +5237,7 @@
                     "userId",
                     "catalogBookId",
                     "state",
-                    "visibilityInProfile",
+                    "isPublic",
                     "addedAt",
                     "id",
                     "createdAt",
@@ -5457,6 +5491,10 @@
                             "type": "string",
                             "format": "uuid"
                           },
+                          "sourceLibraryBookId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
                           "state": {
                             "type": "string",
                             "enum": [
@@ -5464,7 +5502,7 @@
                               "archived"
                             ]
                           },
-                          "visibilityInProfile": {
+                          "isPublic": {
                             "type": "boolean"
                           },
                           "addedAt": {
@@ -5496,7 +5534,7 @@
                           "userId",
                           "catalogBookId",
                           "state",
-                          "visibilityInProfile",
+                          "isPublic",
                           "addedAt",
                           "id",
                           "createdAt",
@@ -5690,7 +5728,7 @@
                     "type": "string",
                     "format": "uuid"
                   },
-                  "visibilityInProfile": {
+                  "isPublic": {
                     "type": "boolean"
                   }
                 }
@@ -5718,6 +5756,10 @@
                       "type": "string",
                       "format": "uuid"
                     },
+                    "sourceLibraryBookId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
                     "state": {
                       "type": "string",
                       "enum": [
@@ -5725,7 +5767,7 @@
                         "archived"
                       ]
                     },
-                    "visibilityInProfile": {
+                    "isPublic": {
                       "type": "boolean"
                     },
                     "addedAt": {
@@ -5757,7 +5799,7 @@
                     "userId",
                     "catalogBookId",
                     "state",
-                    "visibilityInProfile",
+                    "isPublic",
                     "addedAt",
                     "id",
                     "createdAt",
@@ -7563,3442 +7605,12 @@
         ]
       }
     },
-    "/api/v1/sharing/lists": {
-      "post": {
-        "description": "Create a share list for authenticated user.",
-        "summary": "Create share list",
-        "tags": [
-          "sharing"
-        ],
-        "parameters": [],
-        "operationId": "sharing.createList",
-        "requestBody": {
-          "description": "Body",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 120
-                  },
-                  "description": {
-                    "type": "string",
-                    "maxLength": 1000
-                  },
-                  "visibility": {
-                    "type": "string",
-                    "enum": [
-                      "private",
-                      "authenticated"
-                    ]
-                  }
-                },
-                "required": [
-                  "name"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "201",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "userId": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "name": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 120
-                    },
-                    "description": {
-                      "type": "string"
-                    },
-                    "visibility": {
-                      "type": "string",
-                      "enum": [
-                        "private",
-                        "authenticated"
-                      ]
-                    },
-                    "isPublished": {
-                      "type": "boolean"
-                    },
-                    "publishedAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "id": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "createdAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "updatedAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "deletedAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    }
-                  },
-                  "required": [
-                    "userId",
-                    "name",
-                    "visibility",
-                    "isPublished",
-                    "id",
-                    "createdAt",
-                    "updatedAt"
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "401",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        401
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you are not authorized to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "403",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        403
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you do not have permission to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "404",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        404
-                      ]
-                    },
-                    "message": {
-                      "default": "The requested resource was not found.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "500",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        500
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, something went wrong on our end. Please try again later.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ]
-      },
+    "/api/v1/community/books": {
       "get": {
-        "description": "List share lists of authenticated user.",
-        "summary": "List share lists",
-        "tags": [
-          "sharing"
-        ],
-        "parameters": [
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "nullable": true
-            }
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "nullable": true
-            }
-          },
-          {
-            "name": "preloads",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "orderBy",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "orderDirection",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "asc",
-                "desc"
-              ]
-            }
-          }
-        ],
-        "operationId": "sharing.listLists",
-        "responses": {
-          "200": {
-            "description": "200",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        200
-                      ]
-                    },
-                    "message": {
-                      "default": "Fetched paginated data successfully!",
-                      "type": "string"
-                    },
-                    "success": {
-                      "default": true,
-                      "type": "boolean"
-                    },
-                    "total": {
-                      "default": 946,
-                      "type": "number"
-                    },
-                    "page": {
-                      "type": "number"
-                    },
-                    "limit": {
-                      "default": 20,
-                      "type": "number"
-                    },
-                    "totalPages": {
-                      "default": 48,
-                      "type": "number"
-                    },
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "userId": {
-                            "type": "string",
-                            "format": "uuid"
-                          },
-                          "name": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 120
-                          },
-                          "description": {
-                            "type": "string"
-                          },
-                          "visibility": {
-                            "type": "string",
-                            "enum": [
-                              "private",
-                              "authenticated"
-                            ]
-                          },
-                          "isPublished": {
-                            "type": "boolean"
-                          },
-                          "publishedAt": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "id": {
-                            "type": "string",
-                            "format": "uuid"
-                          },
-                          "createdAt": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "updatedAt": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "deletedAt": {
-                            "type": "string",
-                            "format": "date-time"
-                          }
-                        },
-                        "required": [
-                          "userId",
-                          "name",
-                          "visibility",
-                          "isPublished",
-                          "id",
-                          "createdAt",
-                          "updatedAt"
-                        ]
-                      }
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "page",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "401",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        401
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you are not authorized to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "403",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        403
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you do not have permission to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "404",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        404
-                      ]
-                    },
-                    "message": {
-                      "default": "The requested resource was not found.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "500",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        500
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, something went wrong on our end. Please try again later.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ]
-      }
-    },
-    "/api/v1/sharing/lists/{id}": {
-      "patch": {
-        "description": "Update share list details and publish state.",
-        "summary": "Update share list",
-        "tags": [
-          "sharing"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "operationId": "sharing.updateList",
-        "requestBody": {
-          "description": "Body",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 120
-                  },
-                  "description": {
-                    "type": "string",
-                    "maxLength": 1000
-                  },
-                  "visibility": {
-                    "type": "string",
-                    "enum": [
-                      "private",
-                      "authenticated"
-                    ]
-                  },
-                  "isPublished": {
-                    "type": "boolean"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "200",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "userId": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "name": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 120
-                    },
-                    "description": {
-                      "type": "string"
-                    },
-                    "visibility": {
-                      "type": "string",
-                      "enum": [
-                        "private",
-                        "authenticated"
-                      ]
-                    },
-                    "isPublished": {
-                      "type": "boolean"
-                    },
-                    "publishedAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "id": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "createdAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "updatedAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "deletedAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    }
-                  },
-                  "required": [
-                    "userId",
-                    "name",
-                    "visibility",
-                    "isPublished",
-                    "id",
-                    "createdAt",
-                    "updatedAt"
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "401",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        401
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you are not authorized to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "403",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        403
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you do not have permission to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "404",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        404
-                      ]
-                    },
-                    "message": {
-                      "default": "The requested resource was not found.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "500",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        500
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, something went wrong on our end. Please try again later.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ]
-      }
-    },
-    "/api/v1/sharing/lists/{id}/items": {
-      "post": {
-        "description": "Add a book or highlight to a share list.",
-        "summary": "Create share list item",
-        "tags": [
-          "sharing"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "operationId": "sharing.createListItem",
-        "requestBody": {
-          "description": "Body",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "itemType": {
-                    "type": "string",
-                    "enum": [
-                      "book",
-                      "highlight"
-                    ]
-                  },
-                  "userLibraryBookId": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "highlightId": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "position": {
-                    "default": 0,
-                    "type": "integer",
-                    "minimum": 0
-                  }
-                },
-                "required": [
-                  "itemType"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "201",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "listId": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "itemType": {
-                      "type": "string",
-                      "enum": [
-                        "book",
-                        "highlight"
-                      ]
-                    },
-                    "userLibraryBookId": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "highlightId": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "position": {
-                      "type": "integer",
-                      "minimum": 0
-                    },
-                    "id": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "createdAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "updatedAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "deletedAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    }
-                  },
-                  "required": [
-                    "listId",
-                    "itemType",
-                    "position",
-                    "id",
-                    "createdAt",
-                    "updatedAt"
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "401",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        401
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you are not authorized to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "403",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        403
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you do not have permission to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "404",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        404
-                      ]
-                    },
-                    "message": {
-                      "default": "The requested resource was not found.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "500",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        500
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, something went wrong on our end. Please try again later.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ]
-      },
-      "get": {
-        "description": "List items in a share list.",
-        "summary": "List share list items",
-        "tags": [
-          "sharing"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "operationId": "sharing.listListItems",
-        "responses": {
-          "200": {
-            "description": "200",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "listId": {
-                        "type": "string",
-                        "format": "uuid"
-                      },
-                      "itemType": {
-                        "type": "string",
-                        "enum": [
-                          "book",
-                          "highlight"
-                        ]
-                      },
-                      "userLibraryBookId": {
-                        "type": "string",
-                        "format": "uuid"
-                      },
-                      "highlightId": {
-                        "type": "string",
-                        "format": "uuid"
-                      },
-                      "position": {
-                        "type": "integer",
-                        "minimum": 0
-                      },
-                      "id": {
-                        "type": "string",
-                        "format": "uuid"
-                      },
-                      "createdAt": {
-                        "type": "string",
-                        "format": "date-time"
-                      },
-                      "updatedAt": {
-                        "type": "string",
-                        "format": "date-time"
-                      },
-                      "deletedAt": {
-                        "type": "string",
-                        "format": "date-time"
-                      }
-                    },
-                    "required": [
-                      "listId",
-                      "itemType",
-                      "position",
-                      "id",
-                      "createdAt",
-                      "updatedAt"
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "401",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        401
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you are not authorized to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "403",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        403
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you do not have permission to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "404",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        404
-                      ]
-                    },
-                    "message": {
-                      "default": "The requested resource was not found.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "500",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        500
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, something went wrong on our end. Please try again later.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ]
-      }
-    },
-    "/api/v1/sharing/book-share-policies": {
-      "put": {
-        "description": "Update sharing policy for one library book.",
-        "summary": "Upsert book share policy",
-        "tags": [
-          "sharing"
-        ],
-        "parameters": [],
-        "operationId": "sharing.upsertBookSharePolicy",
-        "requestBody": {
-          "description": "Body",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "userLibraryBookId": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "rawFileSharing": {
-                    "type": "string",
-                    "enum": [
-                      "private",
-                      "public_link"
-                    ]
-                  },
-                  "allowMetadataSharing": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "userLibraryBookId",
-                  "rawFileSharing",
-                  "allowMetadataSharing"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "200",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "userId": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "userLibraryBookId": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "rawFileSharing": {
-                      "type": "string",
-                      "enum": [
-                        "private",
-                        "public_link"
-                      ]
-                    },
-                    "allowMetadataSharing": {
-                      "type": "boolean"
-                    },
-                    "id": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "createdAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "updatedAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "deletedAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    }
-                  },
-                  "required": [
-                    "userId",
-                    "userLibraryBookId",
-                    "rawFileSharing",
-                    "allowMetadataSharing",
-                    "id",
-                    "createdAt",
-                    "updatedAt"
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "401",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        401
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you are not authorized to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "403",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        403
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you do not have permission to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "404",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        404
-                      ]
-                    },
-                    "message": {
-                      "default": "The requested resource was not found.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "500",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        500
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, something went wrong on our end. Please try again later.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ]
-      }
-    },
-    "/api/v1/sharing/links": {
-      "post": {
-        "description": "Create share link for list, highlight, or book file.",
-        "summary": "Create share link",
-        "tags": [
-          "sharing"
-        ],
-        "parameters": [],
-        "operationId": "sharing.createShareLink",
-        "requestBody": {
-          "description": "Body",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "resourceType": {
-                    "type": "string",
-                    "enum": [
-                      "list",
-                      "highlight",
-                      "book_file"
-                    ]
-                  },
-                  "resourceId": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "expiresAt": {
-                    "type": "string",
-                    "format": "date-time"
-                  }
-                },
-                "required": [
-                  "resourceType",
-                  "resourceId"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "201",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "userId": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "resourceType": {
-                      "type": "string",
-                      "enum": [
-                        "list",
-                        "highlight",
-                        "book_file"
-                      ]
-                    },
-                    "resourceId": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "token": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "requiresAuth": {
-                      "type": "boolean"
-                    },
-                    "isActive": {
-                      "type": "boolean"
-                    },
-                    "expiresAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "id": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "createdAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "updatedAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "deletedAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    }
-                  },
-                  "required": [
-                    "userId",
-                    "resourceType",
-                    "resourceId",
-                    "token",
-                    "requiresAuth",
-                    "isActive",
-                    "id",
-                    "createdAt",
-                    "updatedAt"
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "401",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        401
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you are not authorized to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "403",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        403
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you do not have permission to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "404",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        404
-                      ]
-                    },
-                    "message": {
-                      "default": "The requested resource was not found.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "500",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        500
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, something went wrong on our end. Please try again later.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ]
-      }
-    },
-    "/api/v1/sharing/links/{id}/revoke": {
-      "post": {
-        "description": "Deactivate a share link owned by authenticated user.",
-        "summary": "Revoke share link",
-        "tags": [
-          "sharing"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "operationId": "sharing.revokeShareLink",
-        "responses": {
-          "200": {
-            "description": "200",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "default": 200,
-                      "type": "integer"
-                    },
-                    "message": {
-                      "default": "Request processed successfully.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "default": true,
-                      "type": "boolean"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "401",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        401
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you are not authorized to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "403",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        403
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you do not have permission to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "404",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        404
-                      ]
-                    },
-                    "message": {
-                      "default": "The requested resource was not found.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "500",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        500
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, something went wrong on our end. Please try again later.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ]
-      }
-    },
-    "/api/v1/sharing/resolve/{token}": {
-      "get": {
-        "description": "Resolve a share link token into resource payload.",
-        "summary": "Resolve share link",
-        "tags": [
-          "sharing"
-        ],
-        "parameters": [
-          {
-            "name": "token",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1
-            }
-          }
-        ],
-        "operationId": "sharing.resolveShareLink",
-        "responses": {
-          "200": {
-            "description": "200",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "resourceType": {
-                      "type": "string",
-                      "enum": [
-                        "list",
-                        "highlight",
-                        "book_file"
-                      ]
-                    },
-                    "link": {
-                      "type": "object",
-                      "properties": {
-                        "userId": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "resourceType": {
-                          "type": "string",
-                          "enum": [
-                            "list",
-                            "highlight",
-                            "book_file"
-                          ]
-                        },
-                        "resourceId": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "token": {
-                          "type": "string",
-                          "minLength": 1
-                        },
-                        "requiresAuth": {
-                          "type": "boolean"
-                        },
-                        "isActive": {
-                          "type": "boolean"
-                        },
-                        "expiresAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "id": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "createdAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "updatedAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "deletedAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        }
-                      },
-                      "required": [
-                        "userId",
-                        "resourceType",
-                        "resourceId",
-                        "token",
-                        "requiresAuth",
-                        "isActive",
-                        "id",
-                        "createdAt",
-                        "updatedAt"
-                      ]
-                    },
-                    "shareList": {
-                      "type": "object",
-                      "properties": {
-                        "userId": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "name": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 120
-                        },
-                        "description": {
-                          "type": "string"
-                        },
-                        "visibility": {
-                          "type": "string",
-                          "enum": [
-                            "private",
-                            "authenticated"
-                          ]
-                        },
-                        "isPublished": {
-                          "type": "boolean"
-                        },
-                        "publishedAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "id": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "createdAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "updatedAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "deletedAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        }
-                      },
-                      "required": [
-                        "userId",
-                        "name",
-                        "visibility",
-                        "isPublished",
-                        "id",
-                        "createdAt",
-                        "updatedAt"
-                      ]
-                    },
-                    "highlight": {
-                      "type": "object",
-                      "properties": {
-                        "userId": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "userLibraryBookId": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "mode": {
-                          "type": "string",
-                          "enum": [
-                            "epub",
-                            "pdf_text",
-                            "pdf_layout"
-                          ]
-                        },
-                        "locatorJson": {
-                          "default": {},
-                          "type": "object",
-                          "additionalProperties": {
-                            "nullable": true
-                          }
-                        },
-                        "excerpt": {
-                          "type": "string"
-                        },
-                        "visibility": {
-                          "type": "string",
-                          "enum": [
-                            "private",
-                            "authenticated"
-                          ]
-                        },
-                        "listId": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "isDeleted": {
-                          "type": "boolean"
-                        },
-                        "id": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "createdAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "updatedAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "deletedAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        }
-                      },
-                      "required": [
-                        "userId",
-                        "userLibraryBookId",
-                        "mode",
-                        "visibility",
-                        "isDeleted",
-                        "id",
-                        "createdAt",
-                        "updatedAt"
-                      ]
-                    },
-                    "libraryBook": {
-                      "type": "object",
-                      "properties": {
-                        "userId": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "catalogBookId": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "preferredAssetId": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "state": {
-                          "type": "string",
-                          "enum": [
-                            "active",
-                            "archived"
-                          ]
-                        },
-                        "visibilityInProfile": {
-                          "type": "boolean"
-                        },
-                        "addedAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "archivedAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "id": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "createdAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "updatedAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "deletedAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        }
-                      },
-                      "required": [
-                        "userId",
-                        "catalogBookId",
-                        "state",
-                        "visibilityInProfile",
-                        "addedAt",
-                        "id",
-                        "createdAt",
-                        "updatedAt"
-                      ]
-                    },
-                    "bookAsset": {
-                      "type": "object",
-                      "properties": {
-                        "catalogBookId": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "uploaderUserId": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "storagePath": {
-                          "type": "string",
-                          "minLength": 1
-                        },
-                        "publicUrl": {
-                          "type": "string",
-                          "format": "uri"
-                        },
-                        "mimeType": {
-                          "type": "string",
-                          "minLength": 1
-                        },
-                        "sizeBytes": {
-                          "type": "number",
-                          "minimum": 0
-                        },
-                        "checksum": {
-                          "type": "string",
-                          "minLength": 1
-                        },
-                        "ingestStatus": {
-                          "type": "string",
-                          "enum": [
-                            "pending",
-                            "completed",
-                            "failed"
-                          ]
-                        },
-                        "id": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "createdAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "updatedAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "deletedAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        }
-                      },
-                      "required": [
-                        "catalogBookId",
-                        "uploaderUserId",
-                        "storagePath",
-                        "mimeType",
-                        "sizeBytes",
-                        "checksum",
-                        "ingestStatus",
-                        "id",
-                        "createdAt",
-                        "updatedAt"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "resourceType",
-                    "link"
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "401",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        401
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you are not authorized to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "403",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        403
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you do not have permission to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "404",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        404
-                      ]
-                    },
-                    "message": {
-                      "default": "The requested resource was not found.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "500",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        500
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, something went wrong on our end. Please try again later.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ]
-      }
-    },
-    "/api/v1/community/profiles/{userId}": {
-      "get": {
-        "description": "Get user community profile.",
-        "summary": "Get community profile",
+        "description": "List public user-owned books available in the community.",
+        "summary": "List community books",
         "tags": [
           "community"
-        ],
-        "parameters": [
-          {
-            "name": "userId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "operationId": "community.getProfile",
-        "responses": {
-          "200": {
-            "description": "200",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "userId": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "displayName": {
-                      "type": "string",
-                      "maxLength": 120
-                    },
-                    "bio": {
-                      "type": "string",
-                      "maxLength": 2000
-                    },
-                    "avatarUrl": {
-                      "type": "string",
-                      "format": "uri"
-                    },
-                    "showReadingActivity": {
-                      "type": "boolean"
-                    },
-                    "showHighlights": {
-                      "type": "boolean"
-                    },
-                    "showLists": {
-                      "type": "boolean"
-                    },
-                    "createdAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "updatedAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    }
-                  },
-                  "required": [
-                    "userId",
-                    "showReadingActivity",
-                    "showHighlights",
-                    "showLists",
-                    "createdAt",
-                    "updatedAt"
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "401",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        401
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you are not authorized to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "403",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        403
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you do not have permission to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "404",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        404
-                      ]
-                    },
-                    "message": {
-                      "default": "The requested resource was not found.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "500",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        500
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, something went wrong on our end. Please try again later.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ]
-      }
-    },
-    "/api/v1/community/profile": {
-      "patch": {
-        "description": "Update current user profile settings.",
-        "summary": "Update my profile",
-        "tags": [
-          "community"
-        ],
-        "parameters": [],
-        "operationId": "community.updateMyProfile",
-        "requestBody": {
-          "description": "Body",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "displayName": {
-                    "type": "string",
-                    "maxLength": 120
-                  },
-                  "bio": {
-                    "type": "string",
-                    "maxLength": 2000
-                  },
-                  "avatarUrl": {
-                    "type": "string",
-                    "format": "uri"
-                  },
-                  "showReadingActivity": {
-                    "type": "boolean"
-                  },
-                  "showHighlights": {
-                    "type": "boolean"
-                  },
-                  "showLists": {
-                    "type": "boolean"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "200",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "userId": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "displayName": {
-                      "type": "string",
-                      "maxLength": 120
-                    },
-                    "bio": {
-                      "type": "string",
-                      "maxLength": 2000
-                    },
-                    "avatarUrl": {
-                      "type": "string",
-                      "format": "uri"
-                    },
-                    "showReadingActivity": {
-                      "type": "boolean"
-                    },
-                    "showHighlights": {
-                      "type": "boolean"
-                    },
-                    "showLists": {
-                      "type": "boolean"
-                    },
-                    "createdAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "updatedAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    }
-                  },
-                  "required": [
-                    "userId",
-                    "showReadingActivity",
-                    "showHighlights",
-                    "showLists",
-                    "createdAt",
-                    "updatedAt"
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "401",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        401
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you are not authorized to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "403",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        403
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you do not have permission to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "404",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        404
-                      ]
-                    },
-                    "message": {
-                      "default": "The requested resource was not found.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "500",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        500
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, something went wrong on our end. Please try again later.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ]
-      }
-    },
-    "/api/v1/community/profiles/{userId}/activity": {
-      "get": {
-        "description": "List activity feed events for a user.",
-        "summary": "List profile activity",
-        "tags": [
-          "community"
-        ],
-        "parameters": [
-          {
-            "name": "userId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "nullable": true
-            }
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "nullable": true
-            }
-          },
-          {
-            "name": "preloads",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "orderBy",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "orderDirection",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "asc",
-                "desc"
-              ]
-            }
-          }
-        ],
-        "operationId": "community.listActivity",
-        "responses": {
-          "200": {
-            "description": "200",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        200
-                      ]
-                    },
-                    "message": {
-                      "default": "Fetched paginated data successfully!",
-                      "type": "string"
-                    },
-                    "success": {
-                      "default": true,
-                      "type": "boolean"
-                    },
-                    "total": {
-                      "default": 946,
-                      "type": "number"
-                    },
-                    "page": {
-                      "type": "number"
-                    },
-                    "limit": {
-                      "default": 20,
-                      "type": "number"
-                    },
-                    "totalPages": {
-                      "default": 48,
-                      "type": "number"
-                    },
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "format": "uuid"
-                          },
-                          "userId": {
-                            "type": "string",
-                            "format": "uuid"
-                          },
-                          "eventType": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "resourceType": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "resourceId": {
-                            "type": "string",
-                            "format": "uuid"
-                          },
-                          "payloadJson": {
-                            "default": {},
-                            "type": "object",
-                            "additionalProperties": {
-                              "nullable": true
-                            }
-                          },
-                          "visibility": {
-                            "type": "string",
-                            "enum": [
-                              "private",
-                              "authenticated"
-                            ]
-                          },
-                          "createdAt": {
-                            "type": "string",
-                            "format": "date-time"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "userId",
-                          "eventType",
-                          "resourceType",
-                          "visibility",
-                          "createdAt"
-                        ]
-                      }
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "page",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "401",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        401
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you are not authorized to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "403",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        403
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you do not have permission to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "404",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        404
-                      ]
-                    },
-                    "message": {
-                      "default": "The requested resource was not found.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "500",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        500
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, something went wrong on our end. Please try again later.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ]
-      }
-    },
-    "/api/v1/moderation/reviews": {
-      "post": {
-        "description": "Submit a catalog book for moderation verification.",
-        "summary": "Create moderation review",
-        "tags": [
-          "moderation"
-        ],
-        "parameters": [],
-        "operationId": "moderation.createReview",
-        "requestBody": {
-          "description": "Body",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "catalogBookId": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "evidence": {
-                    "default": {},
-                    "type": "object",
-                    "additionalProperties": {
-                      "nullable": true
-                    }
-                  }
-                },
-                "required": [
-                  "catalogBookId"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "201",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "catalogBookId": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "submittedByUserId": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "status": {
-                      "type": "string",
-                      "enum": [
-                        "pending",
-                        "approved",
-                        "rejected"
-                      ]
-                    },
-                    "decision": {
-                      "type": "string",
-                      "enum": [
-                        "approved",
-                        "rejected"
-                      ]
-                    },
-                    "evidenceJson": {
-                      "default": {},
-                      "type": "object",
-                      "additionalProperties": {
-                        "nullable": true
-                      }
-                    },
-                    "reviewerUserId": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "reviewedAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "id": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "createdAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "updatedAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "deletedAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    }
-                  },
-                  "required": [
-                    "catalogBookId",
-                    "submittedByUserId",
-                    "status",
-                    "id",
-                    "createdAt",
-                    "updatedAt"
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "401",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        401
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you are not authorized to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "403",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        403
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, you do not have permission to access this resource.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "404",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        404
-                      ]
-                    },
-                    "message": {
-                      "default": "The requested resource was not found.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "500",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "number",
-                      "enum": [
-                        500
-                      ]
-                    },
-                    "message": {
-                      "default": "Sorry, something went wrong on our end. Please try again later.",
-                      "type": "string"
-                    },
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "success"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ]
-      },
-      "get": {
-        "description": "List moderation review queue entries.",
-        "summary": "List moderation reviews",
-        "tags": [
-          "moderation"
         ],
         "parameters": [
           {
@@ -11045,19 +7657,21 @@
             }
           },
           {
-            "name": "status",
+            "name": "q",
             "in": "query",
             "schema": {
-              "type": "string",
-              "enum": [
-                "pending",
-                "approved",
-                "rejected"
-              ]
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerUsername",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           }
         ],
-        "operationId": "moderation.listReviews",
+        "operationId": "community.listBooks",
         "responses": {
           "200": {
             "description": "200",
@@ -11104,39 +7718,88 @@
                             "type": "string",
                             "format": "uuid"
                           },
-                          "submittedByUserId": {
+                          "preferredAssetId": {
                             "type": "string",
                             "format": "uuid"
                           },
-                          "status": {
-                            "type": "string",
-                            "enum": [
-                              "pending",
-                              "approved",
-                              "rejected"
+                          "owner": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "username": {
+                                "type": "string",
+                                "minLength": 3,
+                                "maxLength": 50
+                              },
+                              "avatarUrl": {
+                                "type": "string",
+                                "format": "uri"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "username"
                             ]
                           },
-                          "decision": {
+                          "title": {
                             "type": "string",
-                            "enum": [
-                              "approved",
-                              "rejected"
-                            ]
+                            "minLength": 1,
+                            "maxLength": 255
                           },
-                          "evidenceJson": {
+                          "authors": {
+                            "type": "string"
+                          },
+                          "identifiers": {
                             "default": {},
                             "type": "object",
                             "additionalProperties": {
-                              "nullable": true
+                              "type": "string"
                             }
                           },
-                          "reviewerUserId": {
-                            "type": "string",
-                            "format": "uuid"
+                          "language": {
+                            "type": "string"
                           },
-                          "reviewedAt": {
+                          "sourceType": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "addedAt": {
                             "type": "string",
                             "format": "date-time"
+                          },
+                          "preferredAsset": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "mimeType": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "sizeBytes": {
+                                "type": "number",
+                                "minimum": 0
+                              },
+                              "checksum": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "publicUrl": {
+                                "type": "string",
+                                "format": "uri"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "mimeType",
+                              "sizeBytes",
+                              "checksum"
+                            ]
                           },
                           "id": {
                             "type": "string",
@@ -11149,16 +7812,17 @@
                           "updatedAt": {
                             "type": "string",
                             "format": "date-time"
-                          },
-                          "deletedAt": {
-                            "type": "string",
-                            "format": "date-time"
                           }
                         },
                         "required": [
                           "catalogBookId",
-                          "submittedByUserId",
-                          "status",
+                          "preferredAssetId",
+                          "owner",
+                          "title",
+                          "authors",
+                          "sourceType",
+                          "addedAt",
+                          "preferredAsset",
                           "id",
                           "createdAt",
                           "updatedAt"
@@ -11314,12 +7978,12 @@
         ]
       }
     },
-    "/api/v1/moderation/reviews/{id}/decision": {
-      "patch": {
-        "description": "Approve or reject a moderation review.",
-        "summary": "Decide moderation review",
+    "/api/v1/community/books/{id}": {
+      "get": {
+        "description": "Get one public user-owned book from the community.",
+        "summary": "Get community book",
         "tags": [
-          "moderation"
+          "community"
         ],
         "parameters": [
           {
@@ -11332,29 +7996,7 @@
             }
           }
         ],
-        "operationId": "moderation.decideReview",
-        "requestBody": {
-          "description": "Body",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "decision": {
-                    "type": "string",
-                    "enum": [
-                      "approved",
-                      "rejected"
-                    ]
-                  }
-                },
-                "required": [
-                  "decision"
-                ]
-              }
-            }
-          }
-        },
+        "operationId": "community.getBook",
         "responses": {
           "200": {
             "description": "200",
@@ -11367,37 +8009,316 @@
                       "type": "string",
                       "format": "uuid"
                     },
-                    "submittedByUserId": {
+                    "preferredAssetId": {
                       "type": "string",
                       "format": "uuid"
                     },
-                    "status": {
-                      "type": "string",
-                      "enum": [
-                        "pending",
-                        "approved",
-                        "rejected"
+                    "owner": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "username": {
+                          "type": "string",
+                          "minLength": 3,
+                          "maxLength": 50
+                        },
+                        "avatarUrl": {
+                          "type": "string",
+                          "format": "uri"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "username"
                       ]
                     },
-                    "decision": {
+                    "title": {
                       "type": "string",
-                      "enum": [
-                        "approved",
-                        "rejected"
-                      ]
+                      "minLength": 1,
+                      "maxLength": 255
                     },
-                    "evidenceJson": {
+                    "authors": {
+                      "type": "string"
+                    },
+                    "identifiers": {
                       "default": {},
                       "type": "object",
                       "additionalProperties": {
-                        "nullable": true
+                        "type": "string"
                       }
                     },
-                    "reviewerUserId": {
+                    "language": {
+                      "type": "string"
+                    },
+                    "sourceType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "addedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "preferredAsset": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "mimeType": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "sizeBytes": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "checksum": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "publicUrl": {
+                          "type": "string",
+                          "format": "uri"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "mimeType",
+                        "sizeBytes",
+                        "checksum"
+                      ]
+                    },
+                    "id": {
                       "type": "string",
                       "format": "uuid"
                     },
-                    "reviewedAt": {
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "catalogBookId",
+                    "preferredAssetId",
+                    "owner",
+                    "title",
+                    "authors",
+                    "sourceType",
+                    "addedAt",
+                    "preferredAsset",
+                    "id",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "number",
+                      "enum": [
+                        401
+                      ]
+                    },
+                    "message": {
+                      "default": "Sorry, you are not authorized to access this resource.",
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        false
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "success"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "number",
+                      "enum": [
+                        403
+                      ]
+                    },
+                    "message": {
+                      "default": "Sorry, you do not have permission to access this resource.",
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        false
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "success"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "number",
+                      "enum": [
+                        404
+                      ]
+                    },
+                    "message": {
+                      "default": "The requested resource was not found.",
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        false
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "success"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "number",
+                      "enum": [
+                        500
+                      ]
+                    },
+                    "message": {
+                      "default": "Sorry, something went wrong on our end. Please try again later.",
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        false
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "success"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/community/books/{id}/save": {
+      "post": {
+        "description": "Save a public community book into the current user library.",
+        "summary": "Save community book",
+        "tags": [
+          "community"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "operationId": "community.saveBook",
+        "responses": {
+          "200": {
+            "description": "200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "userId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "catalogBookId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "preferredAssetId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "sourceLibraryBookId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "active",
+                        "archived"
+                      ]
+                    },
+                    "isPublic": {
+                      "type": "boolean"
+                    },
+                    "addedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "archivedAt": {
                       "type": "string",
                       "format": "date-time"
                     },
@@ -11419,9 +8340,11 @@
                     }
                   },
                   "required": [
+                    "userId",
                     "catalogBookId",
-                    "submittedByUserId",
-                    "status",
+                    "state",
+                    "isPublic",
+                    "addedAt",
                     "id",
                     "createdAt",
                     "updatedAt"

@@ -40,16 +40,14 @@ type LibraryService interface {
 }
 
 type libraryService struct {
-	repo          port.LibraryRepository
-	communityRepo port.CommunityRepository
-	storage       storage.Storage
+	repo    port.LibraryRepository
+	storage storage.Storage
 }
 
-func NewLibraryService(repo port.LibraryRepository, communityRepo port.CommunityRepository, storageProvider storage.Storage) LibraryService {
+func NewLibraryService(repo port.LibraryRepository, storageProvider storage.Storage) LibraryService {
 	return &libraryService{
-		repo:          repo,
-		communityRepo: communityRepo,
-		storage:       storageProvider,
+		repo:    repo,
+		storage: storageProvider,
 	}
 }
 
@@ -73,12 +71,11 @@ func (s *libraryService) CreateCatalogBook(ctx context.Context, input applicatio
 	}
 
 	book := &domain.BookCatalog{
-		Title:              strings.TrimSpace(input.Title),
-		Authors:            strings.TrimSpace(input.Authors),
-		Identifiers:        identifiers,
-		Language:           input.Language,
-		VerificationStatus: domain.VerificationStatusPending,
-		SourceType:         sourceType,
+		Title:       strings.TrimSpace(input.Title),
+		Authors:     strings.TrimSpace(input.Authors),
+		Identifiers: identifiers,
+		Language:    input.Language,
+		SourceType:  sourceType,
 	}
 	if err := s.repo.CreateCatalogBook(ctx, book); err != nil {
 		return nil, sqlerr.HandleError(err)
@@ -159,30 +156,26 @@ func (s *libraryService) UpsertLibraryBook(ctx context.Context, userID uuid.UUID
 			return nil, sqlerr.HandleError(err)
 		}
 	}
-	visibility := true
-	if input.VisibilityInProfile != nil {
-		visibility = *input.VisibilityInProfile
+
+	isPublic := false
+	if input.IsPublic != nil {
+		isPublic = *input.IsPublic
+	}
+	if isPublic && input.PreferredAssetID == nil {
+		return nil, errs.NewBadRequestError("Validation failed", true, []errs.FieldError{{Field: "isPublic", Error: "preferredAssetId is required for public books"}}, nil)
 	}
 
 	book, err := s.repo.UpsertUserLibraryBook(ctx, &domain.UserLibraryBook{
-		UserID:              userID,
-		CatalogBookID:       input.CatalogBookID,
-		PreferredAssetID:    input.PreferredAssetID,
-		State:               domain.UserLibraryBookStateActive,
-		VisibilityInProfile: visibility,
-		AddedAt:             time.Now().UTC(),
+		UserID:           userID,
+		CatalogBookID:    input.CatalogBookID,
+		PreferredAssetID: input.PreferredAssetID,
+		State:            domain.UserLibraryBookStateActive,
+		IsPublic:         isPublic,
+		AddedAt:          time.Now().UTC(),
 	})
 	if err != nil {
 		return nil, sqlerr.HandleError(err)
 	}
-
-	s.trackActivity(ctx, &domain.ActivityEvent{
-		UserID:       userID,
-		EventType:    "library_book_added",
-		ResourceType: "library_book",
-		ResourceID:   &book.ID,
-		Visibility:   domain.VisibilityAuthenticated,
-	})
 
 	return book, nil
 }
@@ -197,6 +190,11 @@ func (s *libraryService) ListLibraryBooks(ctx context.Context, userID uuid.UUID,
 }
 
 func (s *libraryService) UpdateLibraryBook(ctx context.Context, userID, libraryBookID uuid.UUID, input applicationdto.UpdateLibraryBookInput) (*domain.UserLibraryBook, error) {
+	current, err := s.repo.GetUserLibraryBookByID(ctx, userID, libraryBookID)
+	if err != nil {
+		return nil, sqlerr.HandleError(err)
+	}
+
 	updates := make(map[string]any)
 	if input.State != nil {
 		state := strings.TrimSpace(*input.State)
@@ -217,11 +215,18 @@ func (s *libraryService) UpdateLibraryBook(ctx context.Context, userID, libraryB
 		}
 		updates["preferred_asset_id"] = input.PreferredAssetID
 	}
-	if input.VisibilityInProfile != nil {
-		updates["visibility_in_profile"] = *input.VisibilityInProfile
+	if input.IsPublic != nil {
+		preferredAssetID := current.PreferredAssetID
+		if input.PreferredAssetID != nil {
+			preferredAssetID = input.PreferredAssetID
+		}
+		if *input.IsPublic && preferredAssetID == nil {
+			return nil, errs.NewBadRequestError("Validation failed", true, []errs.FieldError{{Field: "isPublic", Error: "preferredAssetId is required for public books"}}, nil)
+		}
+		updates["is_public"] = *input.IsPublic
 	}
 	if len(updates) == 0 {
-		return s.repo.GetUserLibraryBookByID(ctx, userID, libraryBookID)
+		return current, nil
 	}
 	book, err := s.repo.UpdateUserLibraryBook(ctx, userID, libraryBookID, updates)
 	if err != nil {
@@ -278,14 +283,6 @@ func (s *libraryService) UpsertReadingState(ctx context.Context, userID, library
 		return nil, sqlerr.HandleError(err)
 	}
 
-	s.trackActivity(ctx, &domain.ActivityEvent{
-		UserID:       userID,
-		EventType:    "reading_state_updated",
-		ResourceType: "reading_state",
-		ResourceID:   &state.ID,
-		Visibility:   domain.VisibilityAuthenticated,
-	})
-
 	return state, nil
 }
 
@@ -317,14 +314,6 @@ func (s *libraryService) CreateHighlight(ctx context.Context, userID, libraryBoo
 	if err := s.repo.CreateHighlight(ctx, highlight); err != nil {
 		return nil, sqlerr.HandleError(err)
 	}
-
-	s.trackActivity(ctx, &domain.ActivityEvent{
-		UserID:       userID,
-		EventType:    "highlight_created",
-		ResourceType: "highlight",
-		ResourceID:   &highlight.ID,
-		Visibility:   visibility,
-	})
 
 	return highlight, nil
 }
@@ -370,13 +359,6 @@ func (s *libraryService) DeleteHighlight(ctx context.Context, userID, highlightI
 		return sqlerr.HandleError(err)
 	}
 	return nil
-}
-
-func (s *libraryService) trackActivity(ctx context.Context, event *domain.ActivityEvent) {
-	if s.communityRepo == nil || event == nil {
-		return
-	}
-	_ = s.communityRepo.CreateActivityEvent(ctx, event)
 }
 
 func normalizePagination(limit, offset int) (int, int) {

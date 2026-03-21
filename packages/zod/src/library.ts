@@ -9,11 +9,6 @@ import {
 
 export const ZReadingMode = z.enum(['epub', 'pdf_text', 'pdf_layout'])
 export const ZVisibility = z.enum(['private', 'authenticated'])
-export const ZVerificationStatus = z.enum([
-	'pending',
-	'verified_public_domain',
-	'rejected',
-])
 
 export const ZBookCatalog = z
 	.object({
@@ -21,7 +16,6 @@ export const ZBookCatalog = z
 		authors: z.string().default(''),
 		identifiers: z.record(z.string(), z.string()).default({}),
 		language: z.string().optional(),
-		verificationStatus: ZVerificationStatus,
 		sourceType: z.string().default('user_upload'),
 	})
 	.extend(ZModel.shape)
@@ -30,6 +24,7 @@ export const ZBookAsset = z
 	.object({
 		catalogBookId: z.string().uuid(),
 		uploaderUserId: z.string().uuid(),
+		sourceAssetId: z.string().uuid().optional(),
 		storagePath: z.string().min(1),
 		publicUrl: z.string().url().optional(),
 		mimeType: z.string().min(1),
@@ -44,8 +39,9 @@ export const ZUserLibraryBook = z
 		userId: z.string().uuid(),
 		catalogBookId: z.string().uuid(),
 		preferredAssetId: z.string().uuid().optional(),
+		sourceLibraryBookId: z.string().uuid().optional(),
 		state: z.enum(['active', 'archived']),
-		visibilityInProfile: z.boolean(),
+		isPublic: z.boolean(),
 		addedAt: z.string().datetime(),
 		archivedAt: z.string().datetime().optional(),
 	})
@@ -86,13 +82,13 @@ export const ZCreateCatalogBookDTO = z.object({
 export const ZCreateLibraryBookDTO = z.object({
 	catalogBookId: z.string().uuid(),
 	preferredAssetId: z.string().uuid().optional(),
-	visibilityInProfile: z.boolean().optional(),
+	isPublic: z.boolean().optional(),
 })
 
 export const ZUpdateLibraryBookDTO = z.object({
 	state: z.enum(['active', 'archived']).optional(),
 	preferredAssetId: z.string().uuid().optional(),
-	visibilityInProfile: z.boolean().optional(),
+	isPublic: z.boolean().optional(),
 })
 
 export const ZUploadBookAssetDTO = z.object({

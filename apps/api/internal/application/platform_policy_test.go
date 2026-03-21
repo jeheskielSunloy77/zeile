@@ -15,7 +15,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func TestSharingServiceUpsertBookSharePolicy_RequiresVerifiedCatalog(t *testing.T) {
+func TestLibraryServiceUpsertLibraryBook_PublicRequiresPreferredAsset(t *testing.T) {
 	testDB, cleanup := internaltesting.SetupTestDB(t)
 	defer cleanup()
 
@@ -26,151 +26,150 @@ func TestSharingServiceUpsertBookSharePolicy_RequiresVerifiedCatalog(t *testing.
 		require.NoError(t, tx.First(&owner, "email = ?", "owner@example.com").Error)
 
 		libraryRepo := repository.NewLibraryRepository(tx)
-		sharingRepo := repository.NewSharingRepository(tx)
-		communityRepo := repository.NewCommunityRepository(tx)
+		service := NewLibraryService(libraryRepo, nil)
 
 		catalog := &domain.BookCatalog{
-			Title:              "Book One",
-			Authors:            "Author",
-			VerificationStatus: domain.VerificationStatusPending,
-			SourceType:         "user_upload",
+			Title:      "Book One",
+			Authors:    "Author",
+			SourceType: "user_upload",
 		}
 		require.NoError(t, libraryRepo.CreateCatalogBook(ctx, catalog))
 
-		libraryBook, err := libraryRepo.UpsertUserLibraryBook(ctx, &domain.UserLibraryBook{
-			UserID:              owner.ID,
-			CatalogBookID:       catalog.ID,
-			State:               domain.UserLibraryBookStateActive,
-			VisibilityInProfile: true,
-		})
-		require.NoError(t, err)
-
-		service := NewSharingService(sharingRepo, libraryRepo, communityRepo)
-
-		_, err = service.UpsertBookSharePolicy(ctx, owner.ID, applicationdto.UpsertBookSharePolicyInput{
-			UserLibraryBookID:    libraryBook.ID,
-			RawFileSharing:       domain.RawFileSharingPublicLink,
-			AllowMetadataSharing: true,
+		_, err := service.UpsertLibraryBook(ctx, owner.ID, applicationdto.CreateLibraryBookInput{
+			CatalogBookID: catalog.ID,
+			IsPublic:      boolPtr(true),
 		})
 		require.Error(t, err)
 
 		var httpErr *errs.ErrorResponse
 		require.ErrorAs(t, err, &httpErr)
 		require.Equal(t, http.StatusBadRequest, httpErr.Status)
-		require.Equal(t, "verification_required", httpErr.Message)
-
-		_, err = libraryRepo.UpdateCatalogVerification(ctx, catalog.ID, domain.VerificationStatusVerifiedPublicDomain)
-		require.NoError(t, err)
-
-		policy, err := service.UpsertBookSharePolicy(ctx, owner.ID, applicationdto.UpsertBookSharePolicyInput{
-			UserLibraryBookID:    libraryBook.ID,
-			RawFileSharing:       domain.RawFileSharingPublicLink,
-			AllowMetadataSharing: true,
-		})
-		require.NoError(t, err)
-		require.Equal(t, domain.RawFileSharingPublicLink, policy.RawFileSharing)
+		require.Equal(t, "Validation failed", httpErr.Message)
 		return nil
 	})
 	require.NoError(t, err)
 }
 
-func TestLibraryServiceUpsertReadingState_ConflictVersionMismatch(t *testing.T) {
+func TestCommunityServiceSaveBook_ClonesOwnedRows(t *testing.T) {
 	testDB, cleanup := internaltesting.SetupTestDB(t)
 	defer cleanup()
 
 	ctx := context.Background()
 	err := internaltesting.WithRollbackTransaction(ctx, testDB, func(tx *gorm.DB) error {
+		require.NoError(t, tx.Create(&domain.User{ID: uuid.New(), Email: "owner@example.com", Username: "owner"}).Error)
 		require.NoError(t, tx.Create(&domain.User{ID: uuid.New(), Email: "reader@example.com", Username: "reader"}).Error)
+
+		var owner domain.User
 		var reader domain.User
+		require.NoError(t, tx.First(&owner, "email = ?", "owner@example.com").Error)
 		require.NoError(t, tx.First(&reader, "email = ?", "reader@example.com").Error)
 
 		libraryRepo := repository.NewLibraryRepository(tx)
-		communityRepo := repository.NewCommunityRepository(tx)
-		service := NewLibraryService(libraryRepo, communityRepo, nil)
+		communityService := NewCommunityService(libraryRepo)
 
 		catalog := &domain.BookCatalog{
-			Title:              "Reading Book",
-			Authors:            "Author",
-			VerificationStatus: domain.VerificationStatusPending,
-			SourceType:         "user_upload",
+			Title:      "Shared Book",
+			Authors:    "Author",
+			SourceType: "user_upload",
 		}
 		require.NoError(t, libraryRepo.CreateCatalogBook(ctx, catalog))
 
-		libraryBook, err := libraryRepo.UpsertUserLibraryBook(ctx, &domain.UserLibraryBook{
-			UserID:              reader.ID,
-			CatalogBookID:       catalog.ID,
-			State:               domain.UserLibraryBookStateActive,
-			VisibilityInProfile: true,
+		sourceAsset := &domain.BookAsset{
+			CatalogBookID:  catalog.ID,
+			UploaderUserID: owner.ID,
+			StoragePath:    "books/shared.epub",
+			MimeType:       "application/epub+zip",
+			SizeBytes:      1234,
+			Checksum:       "abc123",
+			IngestStatus:   domain.BookAssetIngestStatusCompleted,
+		}
+		require.NoError(t, libraryRepo.CreateBookAsset(ctx, sourceAsset))
+
+		sourceAssetID := sourceAsset.ID
+		publicBook, err := libraryRepo.UpsertUserLibraryBook(ctx, &domain.UserLibraryBook{
+			UserID:           owner.ID,
+			CatalogBookID:    catalog.ID,
+			PreferredAssetID: &sourceAssetID,
+			State:            domain.UserLibraryBookStateActive,
+			IsPublic:         true,
 		})
 		require.NoError(t, err)
 
-		state, err := service.UpsertReadingState(ctx, reader.ID, libraryBook.ID, applicationdto.UpsertReadingStateInput{
-			Mode:            domain.ReadingModeEPUB,
-			LocatorJSON:     []byte(`{"chapter":1,"offset":42}`),
-			ProgressPercent: 12.5,
-		})
+		saved, err := communityService.SaveBook(ctx, reader.ID, publicBook.ID)
 		require.NoError(t, err)
-		require.Equal(t, int64(1), state.Version)
+		require.Equal(t, reader.ID, saved.UserID)
+		require.Equal(t, catalog.ID, saved.CatalogBookID)
+		require.NotNil(t, saved.SourceLibraryBookID)
+		require.Equal(t, publicBook.ID, *saved.SourceLibraryBookID)
+		require.NotNil(t, saved.PreferredAssetID)
+		require.False(t, saved.IsPublic)
 
-		wrongVersion := int64(99)
-		_, err = service.UpsertReadingState(ctx, reader.ID, libraryBook.ID, applicationdto.UpsertReadingStateInput{
-			Mode:            domain.ReadingModeEPUB,
-			LocatorJSON:     []byte(`{"chapter":1,"offset":99}`),
-			ProgressPercent: 22,
-			IfMatchVersion:  &wrongVersion,
-		})
-		require.Error(t, err)
-
-		var httpErr *errs.ErrorResponse
-		require.ErrorAs(t, err, &httpErr)
-		require.Equal(t, 409, httpErr.Status)
-		require.Equal(t, "conflict_version_mismatch", httpErr.Message)
+		clonedAsset, err := libraryRepo.GetBookAssetByID(ctx, *saved.PreferredAssetID)
+		require.NoError(t, err)
+		require.Equal(t, reader.ID, clonedAsset.UploaderUserID)
+		require.NotNil(t, clonedAsset.SourceAssetID)
+		require.Equal(t, sourceAsset.ID, *clonedAsset.SourceAssetID)
+		require.Equal(t, sourceAsset.StoragePath, clonedAsset.StoragePath)
 		return nil
 	})
 	require.NoError(t, err)
 }
 
-func TestModerationServiceDecideReview_UpdatesCatalogVerification(t *testing.T) {
+func TestCommunityServiceSaveBook_IsIdempotentPerSourceBook(t *testing.T) {
 	testDB, cleanup := internaltesting.SetupTestDB(t)
 	defer cleanup()
 
 	ctx := context.Background()
 	err := internaltesting.WithRollbackTransaction(ctx, testDB, func(tx *gorm.DB) error {
-		require.NoError(t, tx.Create(&domain.User{ID: uuid.New(), Email: "submitter@example.com", Username: "submitter"}).Error)
-		require.NoError(t, tx.Create(&domain.User{ID: uuid.New(), Email: "admin@example.com", Username: "admin", IsAdmin: true}).Error)
+		require.NoError(t, tx.Create(&domain.User{ID: uuid.New(), Email: "owner@example.com", Username: "owner"}).Error)
+		require.NoError(t, tx.Create(&domain.User{ID: uuid.New(), Email: "reader@example.com", Username: "reader"}).Error)
 
-		var submitter domain.User
-		var admin domain.User
-		require.NoError(t, tx.First(&submitter, "email = ?", "submitter@example.com").Error)
-		require.NoError(t, tx.First(&admin, "email = ?", "admin@example.com").Error)
+		var owner domain.User
+		var reader domain.User
+		require.NoError(t, tx.First(&owner, "email = ?", "owner@example.com").Error)
+		require.NoError(t, tx.First(&reader, "email = ?", "reader@example.com").Error)
 
 		libraryRepo := repository.NewLibraryRepository(tx)
-		moderationRepo := repository.NewModerationRepository(tx)
-		service := NewModerationService(moderationRepo, libraryRepo)
+		communityService := NewCommunityService(libraryRepo)
 
 		catalog := &domain.BookCatalog{
-			Title:              "Moderated Book",
-			Authors:            "Author",
-			VerificationStatus: domain.VerificationStatusPending,
-			SourceType:         "user_upload",
+			Title:      "Shared Book",
+			Authors:    "Author",
+			SourceType: "user_upload",
 		}
 		require.NoError(t, libraryRepo.CreateCatalogBook(ctx, catalog))
 
-		review, err := service.CreateReview(ctx, submitter.ID, applicationdto.CreateModerationReviewInput{
-			CatalogBookID: catalog.ID,
-			EvidenceJSON:  []byte(`{"source":"public-domain-proof"}`),
+		sourceAsset := &domain.BookAsset{
+			CatalogBookID:  catalog.ID,
+			UploaderUserID: owner.ID,
+			StoragePath:    "books/shared.epub",
+			MimeType:       "application/epub+zip",
+			SizeBytes:      1234,
+			Checksum:       "abc123",
+			IngestStatus:   domain.BookAssetIngestStatusCompleted,
+		}
+		require.NoError(t, libraryRepo.CreateBookAsset(ctx, sourceAsset))
+
+		sourceAssetID := sourceAsset.ID
+		publicBook, err := libraryRepo.UpsertUserLibraryBook(ctx, &domain.UserLibraryBook{
+			UserID:           owner.ID,
+			CatalogBookID:    catalog.ID,
+			PreferredAssetID: &sourceAssetID,
+			State:            domain.UserLibraryBookStateActive,
+			IsPublic:         true,
 		})
 		require.NoError(t, err)
-		require.Equal(t, domain.ModerationStatusPending, review.Status)
 
-		decided, err := service.DecideReview(ctx, admin.ID, review.ID, applicationdto.DecideModerationReviewInput{Decision: "approved"})
+		first, err := communityService.SaveBook(ctx, reader.ID, publicBook.ID)
 		require.NoError(t, err)
-		require.Equal(t, domain.ModerationStatusApproved, decided.Status)
-
-		updatedCatalog, err := libraryRepo.GetCatalogBookByID(ctx, catalog.ID)
+		second, err := communityService.SaveBook(ctx, reader.ID, publicBook.ID)
 		require.NoError(t, err)
-		require.Equal(t, domain.VerificationStatusVerifiedPublicDomain, updatedCatalog.VerificationStatus)
+		require.Equal(t, first.ID, second.ID)
 		return nil
 	})
 	require.NoError(t, err)
+}
+
+func boolPtr(v bool) *bool {
+	return &v
 }

@@ -41,7 +41,6 @@ type LibraryRepository interface {
 	CreateCatalogBook(ctx context.Context, book *domain.BookCatalog) error
 	ListCatalogBooks(ctx context.Context, limit, offset int) ([]domain.BookCatalog, int64, error)
 	GetCatalogBookByID(ctx context.Context, id uuid.UUID) (*domain.BookCatalog, error)
-	UpdateCatalogVerification(ctx context.Context, id uuid.UUID, status string) (*domain.BookCatalog, error)
 
 	CreateBookAsset(ctx context.Context, asset *domain.BookAsset) error
 	GetBookAssetByID(ctx context.Context, id uuid.UUID) (*domain.BookAsset, error)
@@ -51,6 +50,9 @@ type LibraryRepository interface {
 	ListUserLibraryBooks(ctx context.Context, userID uuid.UUID, limit, offset int) ([]domain.UserLibraryBook, int64, error)
 	UpdateUserLibraryBook(ctx context.Context, userID, id uuid.UUID, updates map[string]any) (*domain.UserLibraryBook, error)
 	DeleteUserLibraryBook(ctx context.Context, userID, id uuid.UUID) error
+	FindUserLibraryBookBySourceID(ctx context.Context, userID, sourceLibraryBookID uuid.UUID) (*domain.UserLibraryBook, error)
+	ListPublicCommunityBooks(ctx context.Context, query, ownerUsername string, limit, offset int) ([]domain.CommunityBook, int64, error)
+	GetPublicCommunityBookByID(ctx context.Context, id uuid.UUID) (*domain.CommunityBook, error)
 
 	UpsertReadingState(ctx context.Context, state *domain.ReadingState, expectedVersion *int64) (*domain.ReadingState, error)
 	GetReadingState(ctx context.Context, userID, userLibraryBookID uuid.UUID, mode string) (*domain.ReadingState, error)
@@ -65,45 +67,10 @@ type LibraryRepository interface {
 	CreateIdempotencyKey(ctx context.Context, idempotency *domain.IdempotencyKey) error
 }
 
-type SharingRepository interface {
-	CreateShareList(ctx context.Context, list *domain.ShareList) error
-	ListShareLists(ctx context.Context, userID uuid.UUID, limit, offset int) ([]domain.ShareList, int64, error)
-	GetShareListByID(ctx context.Context, userID, id uuid.UUID) (*domain.ShareList, error)
-	UpdateShareList(ctx context.Context, userID, id uuid.UUID, updates map[string]any) (*domain.ShareList, error)
-
-	CreateShareListItem(ctx context.Context, item *domain.ShareListItem) error
-	ListShareListItems(ctx context.Context, listID uuid.UUID) ([]domain.ShareListItem, error)
-
-	GetBookSharePolicy(ctx context.Context, userID, userLibraryBookID uuid.UUID) (*domain.BookSharePolicy, error)
-	UpsertBookSharePolicy(ctx context.Context, policy *domain.BookSharePolicy) (*domain.BookSharePolicy, error)
-
-	CreateShareLink(ctx context.Context, link *domain.ShareLink) error
-	GetShareLinkByID(ctx context.Context, userID, id uuid.UUID) (*domain.ShareLink, error)
-	GetShareLinkByToken(ctx context.Context, token string) (*domain.ShareLink, error)
-	DeactivateShareLink(ctx context.Context, userID, id uuid.UUID) error
-}
-
-type CommunityRepository interface {
-	GetProfileByUserID(ctx context.Context, userID uuid.UUID) (*domain.CommunityProfile, error)
-	UpsertProfile(ctx context.Context, profile *domain.CommunityProfile) (*domain.CommunityProfile, error)
-	CreateActivityEvent(ctx context.Context, event *domain.ActivityEvent) error
-	ListActivityEvents(ctx context.Context, userID uuid.UUID, limit, offset int) ([]domain.ActivityEvent, int64, error)
-}
-
-type ModerationRepository interface {
-	CreateReview(ctx context.Context, review *domain.ModerationReview) error
-	GetReviewByID(ctx context.Context, id uuid.UUID) (*domain.ModerationReview, error)
-	ListReviews(ctx context.Context, status string, limit, offset int) ([]domain.ModerationReview, int64, error)
-	DecideReview(ctx context.Context, id, reviewerUserID uuid.UUID, status, decision string) (*domain.ModerationReview, error)
-}
-
 type Repositories struct {
 	Auth              AuthRepository
 	AuthSession       AuthSessionRepository
 	User              UserRepository
 	EmailVerification EmailVerificationRepository
 	Library           LibraryRepository
-	Sharing           SharingRepository
-	Community         CommunityRepository
-	Moderation        ModerationRepository
 }

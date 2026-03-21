@@ -5,6 +5,7 @@ export const ZUser = z
 	.object({
 		email: z.string().email(),
 		username: z.string().min(3).max(50),
+		avatarUrl: z.string().url().optional(),
 		googleId: z.string().optional(),
 		emailVerifiedAt: z.string().datetime().optional(),
 		lastLoginAt: z.string().datetime().optional(),

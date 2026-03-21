@@ -10,9 +10,7 @@ type Handlers struct {
 	Auth       *AuthHandler
 	User       *UserHandler
 	Library    *LibraryHandler
-	Sharing    *SharingHandler
 	Community  *CommunityHandler
-	Moderation *ModerationHandler
 	OpenAPI    *OpenAPIHandler
 }
 
@@ -24,9 +22,7 @@ func NewHandlers(s *server.Server, services *application.Services) *Handlers {
 		Auth:       NewAuthHandler(h, services.Auth),
 		User:       NewUserHandler(h, services.User),
 		Library:    NewLibraryHandler(h, services.Library),
-		Sharing:    NewSharingHandler(h, services.Sharing),
 		Community:  NewCommunityHandler(h, services.Community),
-		Moderation: NewModerationHandler(h, services.Moderation),
 		OpenAPI:    NewOpenAPIHandler(h),
 	}
 }

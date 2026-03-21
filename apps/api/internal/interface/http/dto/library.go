@@ -31,9 +31,9 @@ func (d *CreateCatalogBookRequest) ToUsecase() applicationdto.CreateCatalogBookI
 }
 
 type CreateLibraryBookRequest struct {
-	CatalogBookID       string `json:"catalogBookId" validate:"required,uuid"`
-	PreferredAssetID    *string `json:"preferredAssetId" validate:"omitempty,uuid"`
-	VisibilityInProfile *bool  `json:"visibilityInProfile"`
+	CatalogBookID    string  `json:"catalogBookId" validate:"required,uuid"`
+	PreferredAssetID *string `json:"preferredAssetId" validate:"omitempty,uuid"`
+	IsPublic         *bool   `json:"isPublic"`
 }
 
 func (d *CreateLibraryBookRequest) Validate() error {
@@ -49,16 +49,16 @@ func (d *CreateLibraryBookRequest) ToUsecase() applicationdto.CreateLibraryBookI
 		}
 	}
 	return applicationdto.CreateLibraryBookInput{
-		CatalogBookID:       catalogID,
-		PreferredAssetID:    preferred,
-		VisibilityInProfile: d.VisibilityInProfile,
+		CatalogBookID:    catalogID,
+		PreferredAssetID: preferred,
+		IsPublic:         d.IsPublic,
 	}
 }
 
 type UpdateLibraryBookRequest struct {
-	State               *string `json:"state" validate:"omitempty,oneof=active archived"`
-	PreferredAssetID    *string `json:"preferredAssetId" validate:"omitempty,uuid"`
-	VisibilityInProfile *bool   `json:"visibilityInProfile"`
+	State            *string `json:"state" validate:"omitempty,oneof=active archived"`
+	PreferredAssetID *string `json:"preferredAssetId" validate:"omitempty,uuid"`
+	IsPublic         *bool   `json:"isPublic"`
 }
 
 func (d *UpdateLibraryBookRequest) Validate() error {
@@ -73,9 +73,9 @@ func (d *UpdateLibraryBookRequest) ToUsecase() applicationdto.UpdateLibraryBookI
 		}
 	}
 	return applicationdto.UpdateLibraryBookInput{
-		State:               d.State,
-		PreferredAssetID:    preferred,
-		VisibilityInProfile: d.VisibilityInProfile,
+		State:            d.State,
+		PreferredAssetID: preferred,
+		IsPublic:         d.IsPublic,
 	}
 }
 

@@ -3,24 +3,27 @@ package dto
 import "github.com/jeheskielSunloy77/kern/internal/domain"
 
 type StoreUserInput struct {
-	Email    string
-	Username string
-	Password string
-	GoogleID *string
+	Email     string
+	Username  string
+	AvatarURL *string
+	Password  string
+	GoogleID  *string
 }
 
 func (d *StoreUserInput) ToModel() *domain.User {
 	return &domain.User{
-		Email:    d.Email,
-		Username: d.Username,
-		GoogleID: d.GoogleID,
+		Email:     d.Email,
+		Username:  d.Username,
+		AvatarURL: d.AvatarURL,
+		GoogleID:  d.GoogleID,
 	}
 }
 
 type UpdateUserInput struct {
-	Email    *string
-	Username *string
-	Password *string
+	Email     *string
+	Username  *string
+	AvatarURL *string
+	Password  *string
 }
 
 func (d *UpdateUserInput) ToModel() *domain.User {
@@ -30,6 +33,9 @@ func (d *UpdateUserInput) ToModel() *domain.User {
 	}
 	if d.Username != nil {
 		user.Username = *d.Username
+	}
+	if d.AvatarURL != nil {
+		user.AvatarURL = d.AvatarURL
 	}
 	if d.Password != nil {
 		user.PasswordHash = *d.Password
@@ -44,6 +50,9 @@ func (d *UpdateUserInput) ToMap() map[string]any {
 	}
 	if d.Username != nil {
 		updates["username"] = *d.Username
+	}
+	if d.AvatarURL != nil {
+		updates["avatar_url"] = *d.AvatarURL
 	}
 	if d.Password != nil {
 		updates["password_hash"] = *d.Password

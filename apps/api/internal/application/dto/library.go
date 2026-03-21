@@ -15,15 +15,15 @@ type CreateCatalogBookInput struct {
 }
 
 type CreateLibraryBookInput struct {
-	CatalogBookID       uuid.UUID
-	PreferredAssetID    *uuid.UUID
-	VisibilityInProfile *bool
+	CatalogBookID    uuid.UUID
+	PreferredAssetID *uuid.UUID
+	IsPublic         *bool
 }
 
 type UpdateLibraryBookInput struct {
-	State               *string
-	PreferredAssetID    *uuid.UUID
-	VisibilityInProfile *bool
+	State            *string
+	PreferredAssetID *uuid.UUID
+	IsPublic         *bool
 }
 
 type UploadBookAssetInput struct {
