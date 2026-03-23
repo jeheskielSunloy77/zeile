@@ -954,8 +954,6 @@ func (m model) renderDeviceAuthModal() string {
 		"2. Enter this code:",
 		lipgloss.NewStyle().Bold(true).Render(m.deviceAuth.UserCode),
 		"",
-		fmt.Sprintf("Polling every %s. Expires in %s.", m.deviceAuth.Interval, expiresIn),
-		"",
 		m.renderFooterHints([]footerHint{
 			{key: "Esc", action: "cancel"},
 		}),
