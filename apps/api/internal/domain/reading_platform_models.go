@@ -20,9 +20,7 @@ const (
 )
 
 const (
-	ReadingModeEPUB      = "epub"
-	ReadingModePDFText   = "pdf_text"
-	ReadingModePDFLayout = "pdf_layout"
+	ReadingModeEPUB = "epub"
 )
 
 const (

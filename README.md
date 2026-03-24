@@ -110,7 +110,7 @@ bun run emails:generate     # Generate email HTML templates
 - Library list with search, remove, and delete-from-disk confirmation flow
 - Add/import uses a centered step-by-step wizard (source method, source selection, managed copy, import progress)
 - Reader with two-page spread fallback, zen mode, in-book search, go-to page/percent
-- EPUB + PDF support (PDF text mode + layout mode with remembered separate positions)
+- EPUB-only support
 - Crash-safe reading progress persistence and startup auto-resume of most recent unfinished book
 
 ## Packages (packages/\*)

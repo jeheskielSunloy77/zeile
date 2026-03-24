@@ -56,7 +56,7 @@ func (s *LibraryService) ImportBook(ctx context.Context, sourcePath string, mana
 		return domain.Book{}, fmt.Errorf("stat source file: %w", err)
 	}
 	if info.IsDir() {
-		return domain.Book{}, errors.New("directories are not supported; select a single EPUB or PDF file")
+		return domain.Book{}, errors.New("directories are not supported; select a single EPUB file")
 	}
 
 	format, err := domain.DetectFormat(cleanPath)

@@ -6153,9 +6153,7 @@
             "schema": {
               "type": "string",
               "enum": [
-                "epub",
-                "pdf_text",
-                "pdf_layout"
+                "epub"
               ]
             }
           }
@@ -6180,9 +6178,7 @@
                     "mode": {
                       "type": "string",
                       "enum": [
-                        "epub",
-                        "pdf_text",
-                        "pdf_layout"
+                        "epub"
                       ]
                     },
                     "locatorJson": {
@@ -6393,9 +6389,7 @@
             "schema": {
               "type": "string",
               "enum": [
-                "epub",
-                "pdf_text",
-                "pdf_layout"
+                "epub"
               ]
             }
           }
@@ -6451,9 +6445,7 @@
                     "mode": {
                       "type": "string",
                       "enum": [
-                        "epub",
-                        "pdf_text",
-                        "pdf_layout"
+                        "epub"
                       ]
                     },
                     "locatorJson": {
@@ -6682,9 +6674,7 @@
                       "mode": {
                         "type": "string",
                         "enum": [
-                          "epub",
-                          "pdf_text",
-                          "pdf_layout"
+                          "epub"
                         ]
                       },
                       "locatorJson": {
@@ -6909,9 +6899,7 @@
                   "mode": {
                     "type": "string",
                     "enum": [
-                      "epub",
-                      "pdf_text",
-                      "pdf_layout"
+                      "epub"
                     ]
                   },
                   "locatorJson": {
@@ -6959,9 +6947,7 @@
                     "mode": {
                       "type": "string",
                       "enum": [
-                        "epub",
-                        "pdf_text",
-                        "pdf_layout"
+                        "epub"
                       ]
                     },
                     "locatorJson": {
@@ -7225,9 +7211,7 @@
                     "mode": {
                       "type": "string",
                       "enum": [
-                        "epub",
-                        "pdf_text",
-                        "pdf_layout"
+                        "epub"
                       ]
                     },
                     "locatorJson": {

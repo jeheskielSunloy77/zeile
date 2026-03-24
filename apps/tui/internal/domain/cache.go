@@ -8,13 +8,6 @@ type EPUBCache struct {
 	SectionInlineStyles       [][]InlineStyleSpan `json:"section_inline_styles,omitempty"`
 }
 
-type PDFCache struct {
-	Title       string   `json:"title"`
-	Author      string   `json:"author"`
-	Pages       []string `json:"pages"`
-	LayoutPages []string `json:"layout_pages,omitempty"`
-}
-
 type InlineStyle uint16
 
 const (

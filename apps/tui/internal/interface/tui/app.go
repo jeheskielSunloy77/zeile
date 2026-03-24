@@ -224,7 +224,6 @@ type model struct {
 	readerPagination    reader.TextPagination
 	readerSectionStarts []int
 	readerChapterStarts map[int]struct{}
-	readerLayoutPages   []string
 	readerPage          int
 	readerSearchQuery   string
 	readerSearchMatches []int

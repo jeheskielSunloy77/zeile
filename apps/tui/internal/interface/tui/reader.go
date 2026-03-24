@@ -42,10 +42,6 @@ func (m *model) handleReaderKey(msg tea.KeyMsg) {
 		m.moveReaderPage(m.readerPageStep())
 		return
 	case "/":
-		if !m.isReaderTextMode() {
-			m.setStatusDefault("In-book search is available in EPUB and PDF text mode")
-			return
-		}
 		m.promptFor(promptReaderSearch, "In-Book Search", "Find text in current reading mode", "search", m.readerSearchQuery)
 		return
 	case "n":
@@ -59,9 +55,6 @@ func (m *model) handleReaderKey(msg tea.KeyMsg) {
 		return
 	case "G":
 		m.promptFor(promptGotoPercent, "Go To Percent", "Jump to reading percent (0-100)", "percent", "")
-		return
-	case "m":
-		m.togglePDFMode()
 		return
 	case "f":
 		m.toggleFinished()
@@ -95,9 +88,6 @@ func (m *model) openBook(bookID string, preferredMode *domain.ReadingMode) error
 		}
 	}
 
-	if mode == domain.ReadingModePDFLayout {
-		return m.openLayoutMode(bookID)
-	}
 	return m.openTextMode(bookID, mode)
 }
 
@@ -112,7 +102,6 @@ func (m *model) openTextMode(bookID string, mode domain.ReadingMode) error {
 	m.readerTextDocument = session.Document
 	m.readerSectionStarts = session.SectionStarts
 	m.readerChapterStarts = toOffsetSet(session.ChapterStarts)
-	m.readerLayoutPages = nil
 	m.readerSearchMatches = nil
 	m.readerSearchIndex = 0
 	m.readerSearchQuery = ""
@@ -142,66 +131,8 @@ func (m *model) openTextMode(bookID string, mode domain.ReadingMode) error {
 	return nil
 }
 
-func (m *model) openLayoutMode(bookID string) error {
-	session, err := m.container.Reader.LoadLayoutSession(context.Background(), bookID)
-	if err != nil {
-		return err
-	}
-
-	m.readerBook = session.Book
-	m.readerMode = domain.ReadingModePDFLayout
-	m.readerLayoutPages = session.Pages
-	m.readerTextDocument = reader.TextDocument{}
-	m.readerPagination = reader.TextPagination{}
-	m.readerSectionStarts = nil
-	m.readerChapterStarts = nil
-	m.readerPage = clamp(session.State.Locator.PageIndex, 0, len(session.Pages)-1)
-	m.readerSearchMatches = nil
-	m.readerSearchIndex = 0
-	m.readerSearchQuery = ""
-	m.readerFinished = session.State.IsFinished
-	m.currentView = viewReader
-	m.readerHelp = false
-	m.clearStatus()
-	if err := m.container.Library.MarkOpened(context.Background(), session.Book.ID, time.Now().UTC()); err != nil {
-		m.setStatusDestructive(fmt.Sprintf("Opened book, but failed to update last-opened: %v", err))
-	}
-	return nil
-}
-
 func (m *model) isReaderTextMode() bool {
-	switch m.readerMode {
-	case domain.ReadingModeEPUB, domain.ReadingModePDFText:
-		return true
-	default:
-		return false
-	}
-}
-
-func (m *model) togglePDFMode() {
-	if m.readerBook.Format != domain.BookFormatPDF {
-		m.setStatusDefault("PDF mode toggle is only available for PDF books")
-		return
-	}
-
-	if err := m.saveReaderState(); err != nil {
-		m.setStatusDestructive(fmt.Sprintf("Failed to save before mode switch: %v", err))
-	}
-
-	if m.readerMode == domain.ReadingModePDFLayout {
-		if err := m.openTextMode(m.readerBook.ID, domain.ReadingModePDFText); err != nil {
-			m.setStatusDestructive(fmt.Sprintf("Failed to switch mode: %v", err))
-			return
-		}
-		m.setStatusSuccess("Switched to PDF text mode")
-		return
-	}
-
-	if err := m.openLayoutMode(m.readerBook.ID); err != nil {
-		m.setStatusDestructive(fmt.Sprintf("Failed to switch mode: %v", err))
-		return
-	}
-	m.setStatusSuccess("Switched to PDF layout mode")
+	return true
 }
 
 func (m *model) toggleFinished() {
@@ -308,16 +239,10 @@ func (m *model) readerPageStep() int {
 }
 
 func (m *model) readerPageCount() int {
-	if m.isReaderTextMode() {
-		return len(m.readerPagination.Pages)
-	}
-	return len(m.readerLayoutPages)
+	return len(m.readerPagination.Pages)
 }
 
 func (m *model) readerAnchorOffset() int {
-	if !m.isReaderTextMode() {
-		return 0
-	}
 	return m.readerPagination.OffsetForPage(m.readerPage)
 }
 
@@ -333,22 +258,13 @@ func (m *model) saveReaderState() error {
 		IsFinished: m.readerFinished,
 	}
 
-	if m.isReaderTextMode() {
-		offset := m.readerPagination.OffsetForPage(m.readerPage)
-		state.Locator = domain.Locator{
-			Offset:       offset,
-			PageIndex:    m.readerPage,
-			SectionIndex: m.readerSectionIndexForOffset(offset),
-		}
-		state.ProgressPercent = reader.ProgressPercent(offset, m.readerTextDocument.TokenCount())
-	} else {
-		totalPages := len(m.readerLayoutPages)
-		if totalPages <= 0 {
-			totalPages = 1
-		}
-		state.Locator = domain.Locator{PageIndex: m.readerPage}
-		state.ProgressPercent = float64(m.readerPage+1) / float64(totalPages) * 100
+	offset := m.readerPagination.OffsetForPage(m.readerPage)
+	state.Locator = domain.Locator{
+		Offset:       offset,
+		PageIndex:    m.readerPage,
+		SectionIndex: m.readerSectionIndexForOffset(offset),
 	}
+	state.ProgressPercent = reader.ProgressPercent(offset, m.readerTextDocument.TokenCount())
 
 	return m.container.Reader.SaveState(context.Background(), state)
 }
@@ -397,10 +313,6 @@ func (m *model) applyReaderSearch(query string) {
 		m.setStatusDefault("Cleared in-book search")
 		return
 	}
-	if !m.isReaderTextMode() {
-		m.setStatusDefault("Search is available only in EPUB and PDF text mode")
-		return
-	}
 
 	matches := m.readerTextDocument.SearchTokenOffsets(query)
 	if len(matches) == 0 {
@@ -422,10 +334,6 @@ func (m *model) applyReaderSearch(query string) {
 func (m *model) jumpToSearchResult(direction int) {
 	if len(m.readerSearchMatches) == 0 {
 		m.setStatusDefault("No active search results")
-		return
-	}
-	if !m.isReaderTextMode() {
-		m.setStatusDefault("Search navigation is unavailable in layout mode")
 		return
 	}
 

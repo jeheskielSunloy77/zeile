@@ -100,7 +100,7 @@ func (d *UpsertReadingStateRequest) ToUsecase(mode string) applicationdto.Upsert
 }
 
 type CreateHighlightRequest struct {
-	Mode        string         `json:"mode" validate:"required,oneof=epub pdf_text pdf_layout"`
+	Mode        string         `json:"mode" validate:"required,oneof=epub"`
 	LocatorJSON map[string]any `json:"locatorJson"`
 	Excerpt     *string        `json:"excerpt" validate:"omitempty,max=2000"`
 	Visibility  *string        `json:"visibility" validate:"omitempty,oneof=private authenticated"`

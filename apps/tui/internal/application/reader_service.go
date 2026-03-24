@@ -26,12 +26,6 @@ type TextSession struct {
 	State         domain.ReadingState
 }
 
-type LayoutSession struct {
-	Book  domain.Book
-	Pages []string
-	State domain.ReadingState
-}
-
 type ReaderService struct {
 	books  BookRepository
 	states ReadingStateRepository
@@ -48,29 +42,17 @@ func (s *ReaderService) LoadTextSession(ctx context.Context, bookID string, mode
 		return TextSession{}, err
 	}
 
-	var text string
-	sectionStarts := []int(nil)
-	chapterStarts := []int(nil)
-	tokenStyles := map[int]reader.TextStyle(nil)
-	switch mode {
-	case domain.ReadingModeEPUB:
-		cache, err := s.readEPUBCache(book.ID)
-		if err != nil {
-			return TextSession{}, err
-		}
-		text = strings.Join(cache.Sections, "\n\n")
-		sectionStarts = computeSectionTokenStarts(cache.Sections)
-		chapterStarts = computeChapterTokenStarts(cache.Sections, cache.SectionChapterLineIndexes)
-		tokenStyles = computeTokenStyles(cache.Sections, cache.SectionInlineStyles)
-	case domain.ReadingModePDFText:
-		cache, err := s.readPDFCache(book.ID)
-		if err != nil {
-			return TextSession{}, err
-		}
-		text = strings.Join(cache.Pages, "\n\n")
-	default:
+	if mode != domain.ReadingModeEPUB {
 		return TextSession{}, fmt.Errorf("mode %s is not a text mode", mode)
 	}
+	cache, err := s.readEPUBCache(book.ID)
+	if err != nil {
+		return TextSession{}, err
+	}
+	text := strings.Join(cache.Sections, "\n\n")
+	sectionStarts := computeSectionTokenStarts(cache.Sections)
+	chapterStarts := computeChapterTokenStarts(cache.Sections, cache.SectionChapterLineIndexes)
+	tokenStyles := computeTokenStyles(cache.Sections, cache.SectionInlineStyles)
 
 	state, err := s.getOrInitState(ctx, book.ID, mode)
 	if err != nil {
@@ -85,36 +67,6 @@ func (s *ReaderService) LoadTextSession(ctx context.Context, bookID string, mode
 		ChapterStarts: chapterStarts,
 		TokenStyles:   tokenStyles,
 		State:         state,
-	}, nil
-}
-
-func (s *ReaderService) LoadLayoutSession(ctx context.Context, bookID string) (LayoutSession, error) {
-	book, err := s.books.GetByID(ctx, bookID)
-	if err != nil {
-		return LayoutSession{}, err
-	}
-	if book.Format != domain.BookFormatPDF {
-		return LayoutSession{}, fmt.Errorf("layout mode is only available for PDF books")
-	}
-
-	cache, err := s.readPDFCache(book.ID)
-	if err != nil {
-		return LayoutSession{}, err
-	}
-	pages := cache.LayoutPages
-	if len(pages) == 0 {
-		pages = cache.Pages
-	}
-
-	state, err := s.getOrInitState(ctx, book.ID, domain.ReadingModePDFLayout)
-	if err != nil {
-		return LayoutSession{}, err
-	}
-
-	return LayoutSession{
-		Book:  book,
-		Pages: pages,
-		State: state,
 	}, nil
 }
 
@@ -148,23 +100,6 @@ func (s *ReaderService) readEPUBCache(bookID string) (domain.EPUBCache, error) {
 	}
 	if len(cache.Sections) == 0 {
 		return domain.EPUBCache{}, fmt.Errorf("epub cache has no sections")
-	}
-	return cache, nil
-}
-
-func (s *ReaderService) readPDFCache(bookID string) (domain.PDFCache, error) {
-	cachePath := filepath.Join(s.paths.BookCacheDir(bookID), "pdf_cache.json")
-	content, err := os.ReadFile(cachePath)
-	if err != nil {
-		return domain.PDFCache{}, fmt.Errorf("read pdf cache: %w", err)
-	}
-
-	var cache domain.PDFCache
-	if err := json.Unmarshal(content, &cache); err != nil {
-		return domain.PDFCache{}, fmt.Errorf("decode pdf cache: %w", err)
-	}
-	if len(cache.Pages) == 0 {
-		return domain.PDFCache{}, fmt.Errorf("pdf cache has no pages")
 	}
 	return cache, nil
 }

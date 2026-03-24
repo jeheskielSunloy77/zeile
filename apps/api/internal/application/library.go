@@ -376,7 +376,7 @@ func normalizePagination(limit, offset int) (int, int) {
 
 func isValidReadingMode(mode string) bool {
 	switch strings.TrimSpace(mode) {
-	case domain.ReadingModeEPUB, domain.ReadingModePDFText, domain.ReadingModePDFLayout:
+	case domain.ReadingModeEPUB:
 		return true
 	default:
 		return false

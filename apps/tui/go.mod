@@ -9,7 +9,6 @@ require (
 	github.com/google/uuid v1.6.0
 	golang.org/x/net v0.50.0
 	modernc.org/sqlite v1.46.1
-	rsc.io/pdf v0.1.1
 )
 
 require (

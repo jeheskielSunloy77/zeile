@@ -7,7 +7,7 @@ import {
 	ZResponseWithData,
 } from './utils.js'
 
-export const ZReadingMode = z.enum(['epub', 'pdf_text', 'pdf_layout'])
+export const ZReadingMode = z.enum(['epub'])
 export const ZVisibility = z.enum(['private', 'authenticated'])
 
 export const ZBookCatalog = z

@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS reading_states (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ,
-    CHECK (mode IN ('epub', 'pdf_text', 'pdf_layout')),
+    CHECK (mode IN ('epub')),
     CHECK (progress_percent >= 0 AND progress_percent <= 100),
     CHECK (version >= 1)
 );
@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS highlights (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ,
-    CHECK (mode IN ('epub', 'pdf_text', 'pdf_layout')),
+    CHECK (mode IN ('epub')),
     CHECK (visibility IN ('private', 'authenticated'))
 );
 

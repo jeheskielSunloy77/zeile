@@ -11,7 +11,6 @@ type BookFormat string
 
 const (
 	BookFormatEPUB BookFormat = "epub"
-	BookFormatPDF  BookFormat = "pdf"
 )
 
 type Book struct {
@@ -33,10 +32,8 @@ func DetectFormat(path string) (BookFormat, error) {
 	switch ext {
 	case ".epub":
 		return BookFormatEPUB, nil
-	case ".pdf":
-		return BookFormatPDF, nil
 	default:
-		return "", fmt.Errorf("unsupported format %q; only EPUB and PDF are supported", ext)
+		return "", fmt.Errorf("unsupported format %q; only EPUB is supported", ext)
 	}
 }
 
@@ -44,8 +41,6 @@ func (f BookFormat) Extension() string {
 	switch f {
 	case BookFormatEPUB:
 		return ".epub"
-	case BookFormatPDF:
-		return ".pdf"
 	default:
 		return ""
 	}

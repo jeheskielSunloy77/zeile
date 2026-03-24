@@ -5,9 +5,7 @@ import "time"
 type ReadingMode string
 
 const (
-	ReadingModeEPUB      ReadingMode = "epub"
-	ReadingModePDFText   ReadingMode = "pdf_text"
-	ReadingModePDFLayout ReadingMode = "pdf_layout"
+	ReadingModeEPUB ReadingMode = "epub"
 )
 
 type Locator struct {

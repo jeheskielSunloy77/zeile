@@ -52,7 +52,6 @@ func NewContainer(ctx context.Context) (*Container, error) {
 
 	processorRegistry := preprocessing.NewRegistry()
 	processorRegistry.Register(domain.BookFormatEPUB, preprocess.EPUBProcessor{})
-	processorRegistry.Register(domain.BookFormatPDF, preprocess.PDFProcessor{})
 
 	library := NewLibraryService(bookRepo, stateRepo, processorRegistry, paths)
 	readerService := NewReaderService(bookRepo, stateRepo, paths)

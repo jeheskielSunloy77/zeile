@@ -61,7 +61,7 @@ func (m model) renderLibrary() string {
 	if query := strings.TrimSpace(m.libraryQuery); query != "" {
 		headerLines = []string{header, fmt.Sprintf("Search: %s", query), ""}
 	}
-	emptyMessage := "No books yet. Press 'a' to import EPUB/PDF."
+	emptyMessage := "No books yet. Press 'a' to import EPUB."
 	theme := m.activeTheme()
 
 	rows := make([]string, 0, len(m.libraryBooks)+2)
@@ -228,7 +228,7 @@ func (m model) renderCommunitiesBody() string {
 			lipgloss.NewStyle().Bold(true).Render(detailBook.Title),
 			fmt.Sprintf("Author: %s", detailBook.Authors),
 			fmt.Sprintf("Shared by: @%s", detailBook.Owner.Username),
-			fmt.Sprintf("Format: %s", communityBookFormat(detailBook.PreferredAsset.MimeType)),
+			fmt.Sprintf("Format: %s", communityBookMimeTypeLabel(detailBook.PreferredAsset.MimeType)),
 			fmt.Sprintf("Size: %s", humanSize(detailBook.PreferredAsset.SizeBytes)),
 		}
 		if m.communitySaving {
@@ -313,7 +313,7 @@ func (m model) renderAdd() string {
 		})
 		value := m.addPath
 		if value == "" {
-			value = "(type a .epub or .pdf path)"
+			value = "(type a .epub path)"
 		}
 		bodyLines = append(bodyLines,
 			"Paste or type a full path to your file.",
@@ -329,7 +329,7 @@ func (m model) renderAdd() string {
 			{key: "b", action: "back"},
 			{key: "q", action: "cancel"},
 		})
-		bodyLines = append(bodyLines, "Select an EPUB or PDF file.", "", "Directory: "+m.browserDir, "")
+		bodyLines = append(bodyLines, "Select an EPUB file.", "", "Directory: "+m.browserDir, "")
 		if len(m.browserEntries) == 0 {
 			bodyLines = append(bodyLines, "(empty)")
 		} else {
@@ -481,7 +481,6 @@ func (m model) renderReader() string {
 		{key: "/", action: "search"},
 		{key: "n/N", action: "next/prev"},
 		{key: "g/G", action: "go-to"},
-		{key: "m", action: "pdf mode"},
 		{key: "f", action: "finished"},
 		{key: "s", action: "settings"},
 		{key: "q", action: "back"},
@@ -505,25 +504,18 @@ func (m model) readerPageContent(pageIndex, pageWidth, pageHeight int) (string, 
 		return "", nil, nil
 	}
 
-	if m.isReaderTextMode() {
-		if pageIndex >= len(m.readerPagination.Pages) {
-			return "", nil, nil
-		}
-		var lineStarts []int
-		var lineRanges []reader.TokenRange
-		if pageIndex < len(m.readerPagination.PageLineStarts) {
-			lineStarts = m.readerPagination.PageLineStarts[pageIndex]
-		}
-		if pageIndex < len(m.readerPagination.PageLineRanges) {
-			lineRanges = m.readerPagination.PageLineRanges[pageIndex]
-		}
-		return m.readerPagination.Pages[pageIndex], lineStarts, lineRanges
-	}
-
-	if pageIndex >= len(m.readerLayoutPages) {
+	if pageIndex >= len(m.readerPagination.Pages) {
 		return "", nil, nil
 	}
-	return reader.RenderLayoutPage(m.readerLayoutPages[pageIndex], pageWidth, pageHeight), nil, nil
+	var lineStarts []int
+	var lineRanges []reader.TokenRange
+	if pageIndex < len(m.readerPagination.PageLineStarts) {
+		lineStarts = m.readerPagination.PageLineStarts[pageIndex]
+	}
+	if pageIndex < len(m.readerPagination.PageLineRanges) {
+		lineRanges = m.readerPagination.PageLineRanges[pageIndex]
+	}
+	return m.readerPagination.Pages[pageIndex], lineStarts, lineRanges
 }
 
 func (m model) renderPageBox(content string, lineStarts []int, lineRanges []reader.TokenRange, pageNumber, totalPages, pageWidth, pageHeight int) string {
@@ -545,7 +537,7 @@ func (m model) renderPageBox(content string, lineStarts []int, lineRanges []read
 		lineRanges = padded
 	}
 
-	if m.isReaderTextMode() && len(m.readerChapterStarts) > 0 {
+	if len(m.readerChapterStarts) > 0 {
 		for i, start := range lineStarts {
 			extraStyle := reader.TextStyle(0)
 			if _, ok := m.readerChapterStarts[start]; ok {
@@ -553,7 +545,7 @@ func (m model) renderPageBox(content string, lineStarts []int, lineRanges []read
 			}
 			lines[i] = m.renderStyledLine(lines[i], lineRanges[i], extraStyle)
 		}
-	} else if m.isReaderTextMode() {
+	} else {
 		for i := range lines {
 			lines[i] = m.renderStyledLine(lines[i], lineRanges[i], 0)
 		}
@@ -585,7 +577,7 @@ func (m model) renderPageBox(content string, lineStarts []int, lineRanges []read
 }
 
 func (m model) applyReaderSpacing(lines []string, lineStarts []int, lineRanges []reader.TokenRange, limit int) ([]string, []int, []reader.TokenRange) {
-	if !m.isReaderTextMode() || limit <= 0 {
+	if limit <= 0 {
 		return lines, lineStarts, lineRanges
 	}
 
@@ -749,7 +741,6 @@ func (m model) renderReaderHelp() string {
 		"- n / N next or previous match",
 		"- g go to page, G go to percent",
 		"- z zen mode toggle",
-		"- m toggle PDF text/layout mode",
 		"- f mark finished",
 		"- s open settings",
 		"- q back to library",
@@ -992,16 +983,14 @@ func (m model) libraryVisibilityLabel(bookID string) string {
 	return "Cloud: Not synced"
 }
 
-func communityBookFormat(mimeType string) string {
+func communityBookMimeTypeLabel(mimeType string) string {
 	mimeType = strings.TrimSpace(strings.ToLower(mimeType))
 	switch mimeType {
 	case "application/epub+zip":
 		return "EPUB"
-	case "application/pdf":
-		return "PDF"
 	default:
 		if mimeType == "" {
-			return "Unknown"
+			return "EPUB"
 		}
 		return mimeType
 	}

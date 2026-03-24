@@ -53,17 +53,6 @@ func TestStartupAutoResumeOpensMostRecentUnfinishedBook(t *testing.T) {
 		t.Fatalf("seed other reading state: %v", err)
 	}
 
-	if err := container.Library.UpdateReadingState(context.Background(), domain.ReadingState{
-		BookID:          otherBook.ID,
-		Mode:            domain.ReadingModePDFText,
-		Locator:         domain.Locator{Offset: 0},
-		ProgressPercent: 100,
-		UpdatedAt:       time.Now().UTC(),
-		IsFinished:      true,
-	}); err != nil {
-		t.Fatalf("seed finished reading state: %v", err)
-	}
-
 	m := New(container).(model)
 	startupMsg, ok := m.loadStartupCmd()().(startupLoadedMsg)
 	if !ok {
@@ -218,7 +207,7 @@ func TestLoadBrowserShowsOnlyDirectoriesAndSupportedFiles(t *testing.T) {
 	if err := os.Mkdir(filepath.Join(dir, "docs"), 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	for _, name := range []string{"book.epub", "paper.PDF", "notes.txt", "archive.zip"} {
+	for _, name := range []string{"book.epub", "notes.txt", "archive.zip"} {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte("x"), 0o644); err != nil {
 			t.Fatalf("write file %s: %v", name, err)
 		}
@@ -236,9 +225,6 @@ func TestLoadBrowserShowsOnlyDirectoriesAndSupportedFiles(t *testing.T) {
 	}
 	if !got["book.epub"] {
 		t.Fatalf("expected epub entry")
-	}
-	if !got["paper.PDF"] {
-		t.Fatalf("expected pdf entry")
 	}
 	if got["notes.txt"] {
 		t.Fatalf("expected txt file to be filtered out")
@@ -413,7 +399,7 @@ func TestRenderLibraryCentersEmptyStateInBody(t *testing.T) {
 
 	rendered := stripANSI(m.renderLibrary())
 	lines := strings.Split(rendered, "\n")
-	message := "No books yet. Press 'a' to import EPUB/PDF."
+	message := "No books yet. Press 'a' to import EPUB."
 
 	headerLine := -1
 	messageLine := -1

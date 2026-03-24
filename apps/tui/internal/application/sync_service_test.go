@@ -156,7 +156,6 @@ func TestSyncServiceReconcileNow_FirstLinkCreation(t *testing.T) {
 		states: map[string][]domain.ReadingState{
 			"book-1": {
 				{BookID: "book-1", Mode: domain.ReadingModeEPUB, Locator: domain.Locator{Offset: 15}, ProgressPercent: 12.5},
-				{BookID: "book-1", Mode: domain.ReadingModePDFText, Locator: domain.Locator{PageIndex: 1}, ProgressPercent: 35},
 			},
 		},
 	}
@@ -180,8 +179,8 @@ func TestSyncServiceReconcileNow_FirstLinkCreation(t *testing.T) {
 	if result.SyncedBooks != 1 {
 		t.Fatalf("expected 1 synced book, got %d", result.SyncedBooks)
 	}
-	if result.SyncedStates != 2 {
-		t.Fatalf("expected 2 synced states, got %d", result.SyncedStates)
+	if result.SyncedStates != 1 {
+		t.Fatalf("expected 1 synced state, got %d", result.SyncedStates)
 	}
 	if result.SkippedBooks != 0 {
 		t.Fatalf("expected 0 skipped books, got %d", result.SkippedBooks)
@@ -198,8 +197,8 @@ func TestSyncServiceReconcileNow_FirstLinkCreation(t *testing.T) {
 	if remoteClient.upsertLibraryCalls != 1 {
 		t.Fatalf("expected 1 upsert library call, got %d", remoteClient.upsertLibraryCalls)
 	}
-	if remoteClient.upsertStateCalls != 2 {
-		t.Fatalf("expected 2 upsert state calls, got %d", remoteClient.upsertStateCalls)
+	if remoteClient.upsertStateCalls != 1 {
+		t.Fatalf("expected 1 upsert state call, got %d", remoteClient.upsertStateCalls)
 	}
 	if remoteClient.uploadAssetCalls != 1 {
 		t.Fatalf("expected 1 upload asset call, got %d", remoteClient.uploadAssetCalls)
